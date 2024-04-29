@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cloudwego/kitex/client"
+	"github.com/cloudwego/kitex/client/callopt"
 	"github.com/cloudwego/kitex/client/genericclient"
 	"github.com/cloudwego/kitex/pkg/generic"
 	"github.com/cloudwego/kitex/transport"
@@ -15,7 +16,7 @@ type ThriftGeneric struct {
 	Provider generic.DescriptorProvider
 	Client   genericclient.Client
 	Generic  generic.Generic
-	conf     config.Config
+	conf     *config.Config
 	Resp     interface{}
 }
 
@@ -23,13 +24,14 @@ func NewThriftGeneric() Client {
 	return &ThriftGeneric{}
 }
 
-func (c *ThriftGeneric) Init(conf config.Config) error {
+func (c *ThriftGeneric) Init(conf *config.Config) error {
 	// Waiting for server reflection
 	p, err := generic.NewThriftFileProvider(conf.IDLPath)
 	if err != nil {
 		return err
 	}
 	c.Provider = p
+	c.conf = conf
 
 	g, err := generic.JSONThriftGeneric(p)
 	if err != nil {
@@ -37,13 +39,12 @@ func (c *ThriftGeneric) Init(conf config.Config) error {
 	}
 	c.Generic = g
 
-	opts, err := c.BuildOptions(conf)
+	opts, err := c.BuildClientOptions()
 	if err != nil {
 		return err
 	}
-	c.conf = conf
 
-	cli, err := genericclient.NewClient(conf.Service, g, opts...)
+	cli, err := genericclient.NewClient(conf.Service, c.Generic, opts...)
 	if err != nil {
 		return err
 	}
@@ -52,13 +53,13 @@ func (c *ThriftGeneric) Init(conf config.Config) error {
 }
 
 func (c *ThriftGeneric) Call() error {
-	// 'ExampleMethod' method name must be included in the idl definition
-	// resp, err := c.Client.GenericCall(context.Background(), "ExampleMethod", "{\"Msg\": \"hello\"}")
-	resp, err := c.Client.GenericCall(context.Background(), c.conf.Method, c.conf.Data)
+	opts, err := c.BuildCallOptions()
 	if err != nil {
-		if handleBizError(err) != nil {
-			return err
-		}
+		return err
+	}
+
+	resp, err := c.Client.GenericCall(context.Background(), c.conf.Method, c.conf.Data, opts...)
+	if err != nil {
 		return err
 	}
 
@@ -76,11 +77,11 @@ func (c *ThriftGeneric) Output() error {
 	return nil
 }
 
-func (c *ThriftGeneric) BuildOptions(conf config.Config) ([]client.Option, error) {
+func (c *ThriftGeneric) BuildClientOptions() ([]client.Option, error) {
 	var opts []client.Option
-	opts = append(opts, client.WithHostPorts(conf.Endpoint...))
-	if conf.Transport != "" {
-		switch conf.Transport {
+	opts = append(opts, client.WithHostPorts(c.conf.Endpoint...))
+	if c.conf.Transport != "" {
+		switch c.conf.Transport {
 		case "TTHeader":
 			opts = append(opts, client.WithTransportProtocol(transport.TTHeader))
 		case "Framed":
@@ -90,5 +91,11 @@ func (c *ThriftGeneric) BuildOptions(conf config.Config) ([]client.Option, error
 		}
 	}
 
+	return opts, nil
+}
+
+func (c *ThriftGeneric) BuildCallOptions() ([]callopt.Option, error) {
+	var opts []callopt.Option
+	// TODO: add call options
 	return opts, nil
 }

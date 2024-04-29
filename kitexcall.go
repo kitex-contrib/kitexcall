@@ -41,9 +41,9 @@ func main() {
 	var cli client.Client
 	switch args.Type {
 	case config.Thrift:
-		// 创建thrift client
 		cli = client.NewThriftGeneric()
-
+	case config.Protobuf:
+		// TODO
 	}
 
 	if err := client.InvokeRPC(cli, conf); err != nil {

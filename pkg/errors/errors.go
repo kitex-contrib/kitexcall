@@ -13,7 +13,6 @@ type ErrorType int
 
 const (
 	ArgParseError ErrorType = iota
-	BizError
 	ClientError
 	ServerError
 	OutputError

@@ -2,50 +2,60 @@ package log
 
 import (
 	"fmt"
+	"io"
 	"os"
 )
 
 type Outputter interface {
-	Success(data interface{}) error
-	Fail(data interface{}) error
-	Info(data interface{})
+	Success(data ...interface{}) error
+	Fail(data ...interface{}) error
 }
 
 var Verbose bool
 
-type Console struct{}
+type Logger struct {
+	Println func(w io.Writer, a ...interface{}) (n int, err error)
+	Printf  func(w io.Writer, format string, a ...interface{}) (n int, err error)
+}
 
-func (c *Console) Success(data interface{}) error {
-	fmt.Println("\033[32mCall Status: Success\033[0m")
-	fmt.Println(data)
+var defaultLogger = Logger{
+	Println: fmt.Fprintln,
+	Printf:  fmt.Fprintf,
+}
+
+// SetDefaultLogger sets the default logger.
+func SetDefaultLogger(l Logger) {
+	defaultLogger = l
+}
+
+func (c *Logger) Success(data ...interface{}) error {
+	defaultLogger.Println(os.Stdout, "\033[32mCall Status: Success\033[0m")
+	defaultLogger.Println(os.Stdout, data...)
 	return nil
 }
 
-func (c *Console) Fail(data interface{}) error {
-
-	fmt.Println("\033[31mCall Status: Failed\033[0m")
-	fmt.Fprintln(os.Stderr, data)
+func (c *Logger) Fail(data ...interface{}) error {
+	defaultLogger.Println(os.Stderr, "\033[31mCall Status: Failed\033[0m")
+	defaultLogger.Println(os.Stderr, data...)
 	return nil
 }
 
-func (c *Console) Info(data interface{}) {
+func (c *Logger) Info(data ...interface{}) {
 	if Verbose {
-		fmt.Printf("[INFO]:%v\n", data)
+		defaultLogger.Printf(os.Stdout, "[INFO]:%v\n", data...)
 	}
 }
 
-var console = &Console{}
-
-func Info(data interface{}) {
-	console.Info(data)
+func Info(data ...interface{}) {
+	defaultLogger.Info(data...)
 }
 
-func Success(data interface{}) {
-	console.Success(data)
+func Success(data ...interface{}) {
+	defaultLogger.Success(data...)
 }
 
-func Fail(data interface{}) {
-	console.Fail(data)
+func Fail(data ...interface{}) {
+	defaultLogger.Fail(data...)
 }
 
 // For file output
@@ -57,8 +67,4 @@ func (f *File) Success(data interface{}) error {
 
 func (f *File) Fail(data interface{}) error {
 	return nil
-}
-
-func (f *File) Info(data interface{}) {
-
 }
