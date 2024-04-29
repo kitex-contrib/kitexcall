@@ -2,15 +2,27 @@ package argparse
 
 import (
 	"flag"
-	"fmt"
 	"os"
+	"strings"
 
 	"github.com/kitex-contrib/kitexcall/pkg/config"
+	"github.com/kitex-contrib/kitexcall/pkg/errors"
 	"github.com/kitex-contrib/kitexcall/pkg/log"
 )
 
 type Augment struct {
 	config.Config
+}
+
+type EndpointList []string
+
+func (e *EndpointList) String() string {
+	return strings.Join(*e, ",")
+}
+
+func (e *EndpointList) Set(value string) error {
+	*e = append(*e, value)
+	return nil
 }
 
 func (a *Augment) buildFlags() *flag.FlagSet {
@@ -23,48 +35,83 @@ func (a *Augment) buildFlags() *flag.FlagSet {
 
 	f.StringVar(&a.Service, "service", "", "Specify the service name.")
 	f.StringVar(&a.Service, "s", "", "Specify the service name. (shorthand)")
+
+	f.StringVar(&a.Method, "method", "", "Specify the method name.")
+	f.StringVar(&a.Method, "m", "", "Specify the method name. (shorthand)")
+
+	f.StringVar(&a.Data, "data", "", "Specify the data to be sent.")
+	f.StringVar(&a.Data, "d", "", "Specify the data to be sent.")
+
+	f.Var((*EndpointList)(&a.Endpoint), "endpoint", "Specify the server endpoints. Can be repeated.")
+	f.Var((*EndpointList)(&a.Endpoint), "e", "Specify the server endpoints. Can be repeated. (shorthand)")
+
+	f.BoolVar(&a.Verbose, "verbose", false, "Enable verbose mode.")
+	f.BoolVar(&a.Verbose, "v", false, "Enable verbose mode. (shorthand)")
+
+	f.StringVar(&a.Transport, "transport", "", "Specify the transport type. Can be 'TTHeader', 'Framed', 'TTHeaderFramed'.")
+
 	return f
 }
 
-func (a *Augment) ParseArgs() {
-	fmt.Println("Parse Args")
+func (a *Augment) ParseArgs() error {
 	f := a.buildFlags()
 	if err := f.Parse(os.Args[1:]); err != nil {
-		log.Error("ArgParse", err)
-		os.Exit(2)
+		return errors.New(errors.ArgParseError, "Flag parse error: %v", err)
 	}
+	log.Verbose = a.Verbose
+	log.Info("Parse args succeed")
 
-	fmt.Println("Validata Args")
-
-	fmt.Println(f.Args()) // 这个是获取未被解析的参数列表。。。
-	a.ValidateArgs()
+	if err := a.ValidateArgs(); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (a *Augment) ValidateArgs() {
-	// 检查必需参数是否提供
+func (a *Augment) ValidateArgs() error {
+	// Since server reflection is not available yet,
+	// this is the only way to obtain IDL.
 	if a.IDLPath == "" {
-		log.Error("ArgParse", "IDL path is required")
-		os.Exit(2)
+		return errors.New(errors.ArgParseError, "IDL path is required")
 	}
 
-	// 检查参数值的有效性
 	if a.Type != "thrift" && a.Type != "protobuf" {
-		log.Error("ArgParse", "Invalid IDL type: ", a.Type)
-		os.Exit(2)
+		return errors.New(errors.ArgParseError, "Invalid IDL type: %v", a.Type)
 	}
 
-	// 其他参数验证...
+	// This can be modified when service discovery is supported.
+	if len(a.Endpoint) == 0 {
+		return errors.New(errors.ArgParseError, "At least one endpoint must be specified")
+	}
 
-	fmt.Println("Args validation passed")
+	if a.Service == "" {
+		return errors.New(errors.ArgParseError, "Service name is required")
+	}
+
+	if a.Data == "" {
+		return errors.New(errors.ArgParseError, "Data is required")
+	}
+
+	if a.Method == "" {
+		return errors.New(errors.ArgParseError, "Method name is required")
+	}
+
+	if a.Transport != config.TTHeader && a.Transport != config.Framed && a.Transport != config.TTHeaderFramed && a.Transport != "" {
+		return errors.New(errors.ArgParseError, "Transport type is invalid")
+	}
+
+	log.Info("Args validate succeed")
+	return nil
 }
 
-func (a *Augment) BuildConfig() (config.Config, error) {
+func (a *Augment) BuildConfig() config.Config {
 	return config.Config{
-		Method:   a.Method,
-		Verbose:  false,
-		Type:     "thrift",
-		IDLPath:  "./example_service.thrift",
-		Endpoint: []string{"0.0.0.0:9999"},
-		Service:  "destServiceName",
-	}, nil
+		Method:    a.Method,
+		Verbose:   a.Verbose,
+		Type:      a.Type,
+		IDLPath:   a.IDLPath,
+		Endpoint:  a.Endpoint,
+		Service:   a.Service,
+		Data:      a.Data,
+		Transport: a.Transport,
+	}
 }

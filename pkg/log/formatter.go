@@ -1,19 +1,31 @@
 package log
 
-import "fmt"
+import (
+	"encoding/json"
+)
 
-type OutputFormatter interface {
-	Format() string
+var F Formatter
+var JF *JsonFomatter = &JsonFomatter{}
+
+type Formatter interface {
+	Format(s string) (string, error)
 }
 
-func FormatResult(formatter OutputFormatter) string {
-	return formatter.Format()
+func Format(formatter Formatter, s string) (string, error) {
+	return formatter.Format(s)
 }
 
-type ErrorMessage struct {
-	Message string
-}
+type JsonFomatter struct{}
 
-func (em *ErrorMessage) Format() string {
-	return fmt.Sprintf("Error: %s\n", em.Message)
+func (jf *JsonFomatter) Format(s string) (string, error) {
+	var result map[string]interface{}
+	err := json.Unmarshal([]byte(s), &result)
+	if err != nil {
+		return "", err
+	}
+	prettyJSON, err := json.MarshalIndent(result, "", "    ")
+	if err != nil {
+		return "", err
+	}
+	return string(prettyJSON), nil
 }

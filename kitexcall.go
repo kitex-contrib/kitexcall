@@ -16,36 +16,39 @@
 package main
 
 import (
+	"os"
+
 	"github.com/kitex-contrib/kitexcall/pkg/argparse"
 	"github.com/kitex-contrib/kitexcall/pkg/client"
 	"github.com/kitex-contrib/kitexcall/pkg/config"
+	"github.com/kitex-contrib/kitexcall/pkg/log"
 )
 
-var args argparse.Augment
+var args = &argparse.Augment{}
 
 func main() {
-	args.ParseArgs()
 
-	conf, err := args.BuildConfig()
-	if err != nil {
-		panic(err)
+	if err := args.ParseArgs(); err != nil {
+		log.Fail(err)
+		os.Exit(1)
 	}
+
+	conf := args.BuildConfig()
+
+	// After implementing server reflection,
+	// options here can include list, describe, or invoke.
 
 	var cli client.Client
 	switch args.Type {
 	case config.Thrift:
 		// 创建thrift client
 		cli = client.NewThriftGeneric()
-		// case config.Protobuf:
-		// 	// 创建protobuf client
 
 	}
 
 	if err := client.InvokeRPC(cli, conf); err != nil {
-
+		log.Fail(err)
+		os.Exit(1)
 	}
 
-	// 把args变成Config
-
-	// 通过Config创建Client
 }
