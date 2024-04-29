@@ -103,8 +103,8 @@ func (a *Augment) ValidateArgs() error {
 	return nil
 }
 
-func (a *Augment) BuildConfig() config.Config {
-	return config.Config{
+func (a *Augment) BuildConfig() *config.Config {
+	return &config.Config{
 		Method:    a.Method,
 		Verbose:   a.Verbose,
 		Type:      a.Type,
