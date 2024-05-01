@@ -28,22 +28,26 @@ func SetDefaultLogger(l Logger) {
 	defaultLogger = l
 }
 
-func (c *Logger) Success(data ...interface{}) error {
+func (l *Logger) Success(data ...interface{}) error {
 	defaultLogger.Println(os.Stdout, "\033[32mCall Status: Success\033[0m")
 	defaultLogger.Println(os.Stdout, data...)
 	return nil
 }
 
-func (c *Logger) Fail(data ...interface{}) error {
+func (l *Logger) Fail(data ...interface{}) error {
 	defaultLogger.Println(os.Stderr, "\033[31mCall Status: Failed\033[0m")
 	defaultLogger.Println(os.Stderr, data...)
 	return nil
 }
 
-func (c *Logger) Info(data ...interface{}) {
+func (l *Logger) Info(data ...interface{}) {
 	if Verbose {
 		defaultLogger.Printf(os.Stdout, "[INFO]:%v\n", data...)
 	}
+}
+
+func (l *Logger) Print(data ...interface{}) {
+	defaultLogger.Println(os.Stdout, data...)
 }
 
 func Info(data ...interface{}) {
@@ -56,6 +60,10 @@ func Success(data ...interface{}) {
 
 func Fail(data ...interface{}) {
 	defaultLogger.Fail(data...)
+}
+
+func Print(data ...interface{}) {
+	defaultLogger.Print(data...)
 }
 
 // For file output

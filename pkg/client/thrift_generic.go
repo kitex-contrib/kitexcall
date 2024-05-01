@@ -2,11 +2,13 @@ package client
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cloudwego/kitex/client"
 	"github.com/cloudwego/kitex/client/callopt"
 	"github.com/cloudwego/kitex/client/genericclient"
 	"github.com/cloudwego/kitex/pkg/generic"
+	"github.com/cloudwego/kitex/pkg/kerrors"
 	"github.com/cloudwego/kitex/transport"
 	"github.com/kitex-contrib/kitexcall/pkg/config"
 	"github.com/kitex-contrib/kitexcall/pkg/log"
@@ -74,6 +76,17 @@ func (c *ThriftGeneric) Output() error {
 	}
 
 	log.Success(result)
+	return nil
+}
+
+func (c *ThriftGeneric) HandleBizError(bizErr kerrors.BizStatusErrorIface) error {
+	result, err := log.Format(log.JF, bizErr.BizMessage())
+	if err != nil {
+		return err
+	}
+	log.Success(fmt.Sprintf("Biz error: \nStatusCode: %v\nMessage: \n",
+		bizErr.BizStatusCode()))
+	log.Print(result)
 	return nil
 }
 
