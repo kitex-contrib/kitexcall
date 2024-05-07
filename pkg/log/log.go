@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024 CloudWeGo Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package log
 
 import (
@@ -5,11 +21,6 @@ import (
 	"io"
 	"os"
 )
-
-type Outputter interface {
-	Success(data ...interface{}) error
-	Fail(data ...interface{}) error
-}
 
 var Verbose bool
 
@@ -28,51 +39,32 @@ func SetDefaultLogger(l Logger) {
 	defaultLogger = l
 }
 
-func (l *Logger) Success(data ...interface{}) error {
-	defaultLogger.Println(os.Stdout, "\033[32mCall Status: Success\033[0m")
-	defaultLogger.Println(os.Stdout, data...)
-	return nil
+func Success() {
+	defaultLogger.Println(os.Stderr, "\033[32m[Status]: Success\033[0m")
 }
 
-func (l *Logger) Fail(data ...interface{}) error {
-	defaultLogger.Println(os.Stderr, "\033[31mCall Status: Failed\033[0m")
-	defaultLogger.Println(os.Stderr, data...)
-	return nil
+func Fail() {
+	defaultLogger.Println(os.Stderr, "\033[31m[Status]: Failed\033[0m")
 }
 
-func (l *Logger) Info(data ...interface{}) {
+func Println(v ...interface{}) {
+	defaultLogger.Println(os.Stderr, v...)
+}
+
+func Printf(format string, v ...interface{}) {
+	defaultLogger.Printf(os.Stderr, format, v...)
+}
+
+func Warn(v ...interface{}) {
+	defaultLogger.Println(os.Stderr, v...)
+}
+
+func Warnf(format string, v ...interface{}) {
+	defaultLogger.Printf(os.Stderr, format, v...)
+}
+
+func Info(v ...interface{}) {
 	if Verbose {
-		defaultLogger.Printf(os.Stdout, "[INFO]:%v\n", data...)
+		defaultLogger.Printf(os.Stderr, "[INFO]: %v\n", v...)
 	}
-}
-
-func (l *Logger) Print(data ...interface{}) {
-	defaultLogger.Println(os.Stdout, data...)
-}
-
-func Info(data ...interface{}) {
-	defaultLogger.Info(data...)
-}
-
-func Success(data ...interface{}) {
-	defaultLogger.Success(data...)
-}
-
-func Fail(data ...interface{}) {
-	defaultLogger.Fail(data...)
-}
-
-func Print(data ...interface{}) {
-	defaultLogger.Print(data...)
-}
-
-// For file output
-type File struct{}
-
-func (f *File) Success(data interface{}) error {
-	return nil
-}
-
-func (f *File) Fail(data interface{}) error {
-	return nil
 }

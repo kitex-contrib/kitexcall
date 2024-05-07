@@ -14,33 +14,17 @@
  * limitations under the License.
  */
 
-package errors
+package test
 
 import (
-	"fmt"
+	"reflect"
+	"testing"
 )
 
-type Error struct {
-	Type    ErrorType
-	Message string
-}
-
-type ErrorType string
-
-const (
-	ArgParseError = "ArgParseError"
-	ClientError   = "ClientError"
-	ServerError   = "ServerError"
-	OutputError   = "OutputError"
-)
-
-func (e *Error) Error() string {
-	return fmt.Sprintf("[%s]: %s", e.Type, e.Message)
-}
-
-func New(Type ErrorType, format string, args ...interface{}) *Error {
-	return &Error{
-		Type:    Type,
-		Message: fmt.Sprintf(format, args...),
+// DeepEqual asserts a and b are deep equal, otherwise fails the test.
+func DeepEqual(t *testing.T, a, b interface{}) {
+	t.Helper()
+	if !reflect.DeepEqual(a, b) {
+		t.Fatalf("assertion failed: %v != %v", a, b)
 	}
 }

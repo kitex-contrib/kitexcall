@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package main
 
 import (
@@ -20,17 +21,14 @@ import (
 
 	"github.com/kitex-contrib/kitexcall/pkg/argparse"
 	"github.com/kitex-contrib/kitexcall/pkg/client"
-	"github.com/kitex-contrib/kitexcall/pkg/config"
 	"github.com/kitex-contrib/kitexcall/pkg/log"
 )
 
-var args = &argparse.Augment{}
-
 func main() {
+	args := argparse.NewAugment()
 
 	if err := args.ParseArgs(); err != nil {
-		log.Fail(err)
-		os.Exit(1)
+		fail(err)
 	}
 
 	conf := args.BuildConfig()
@@ -38,17 +36,13 @@ func main() {
 	// After implementing server reflection,
 	// options here can include list, describe, or invoke.
 
-	var cli client.Client
-	switch args.Type {
-	case config.Thrift:
-		cli = client.NewThriftGeneric()
-	case config.Protobuf:
-		// TODO
+	if _, err := client.InvokeRPC(conf); err != nil {
+		fail(err)
 	}
+}
 
-	if err := client.InvokeRPC(cli, conf); err != nil {
-		log.Fail(err)
-		os.Exit(1)
-	}
-
+func fail(err error) {
+	log.Fail()
+	log.Println(err)
+	os.Exit(1)
 }
