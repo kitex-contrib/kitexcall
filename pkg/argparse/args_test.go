@@ -23,7 +23,7 @@ import (
 )
 
 func TestAugment_ParseArgs(t *testing.T) {
-	a := NewAugment()
+	a := NewArgument()
 
 	for _, tt := range []struct {
 		name       string

@@ -25,7 +25,7 @@ import (
 )
 
 func main() {
-	args := argparse.NewAugment()
+	args := argparse.NewArgument()
 
 	if err := args.ParseArgs(); err != nil {
 		fail(err)

@@ -32,7 +32,7 @@ type Argument struct {
 	help bool
 }
 
-func NewAugment() *Argument {
+func NewArgument() *Argument {
 	return &Argument{
 		Config: config.Config{
 			Meta:           make(map[string]string),
