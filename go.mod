@@ -4,6 +4,8 @@ go 1.21
 
 toolchain go1.21.9
 
+replace github.com/apache/thrift => github.com/apache/thrift v0.13.0
+
 require (
 	github.com/bytedance/gopkg v0.0.0-20230728082804-614d0af6619b
 	github.com/cloudwego/dynamicgo v0.2.0
