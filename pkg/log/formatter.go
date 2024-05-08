@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 )
 
-var Jf *JsonFomatter = &JsonFomatter{}
+var Jf *JsonFormatter = &JsonFormatter{}
 var Mf *MapFormatter = &MapFormatter{}
 
 func FormatJson(s string) (string, error) {
@@ -31,9 +31,9 @@ func FormatMap(m map[string]string) (string, error) {
 	return Mf.Format(m)
 }
 
-type JsonFomatter struct{}
+type JsonFormatter struct{}
 
-func (jf *JsonFomatter) Format(s string) (string, error) {
+func (jf *JsonFormatter) Format(s string) (string, error) {
 	var result map[string]interface{}
 	err := json.Unmarshal([]byte(s), &result)
 	if err != nil {
