@@ -291,5 +291,4 @@ func TestBizErrorGenericServer_invokeRPC(t *testing.T) {
 	if bizErr.BizMessage() != expectedMessage {
 		t.Errorf("Expected BizMessage %s, got %s", expectedMessage, bizErr.BizMessage())
 	}
-
 }

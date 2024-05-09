@@ -20,8 +20,10 @@ import (
 	"encoding/json"
 )
 
-var Jf *JsonFormatter = &JsonFormatter{}
-var Mf *MapFormatter = &MapFormatter{}
+var (
+	Jf *JsonFormatter = &JsonFormatter{}
+	Mf *MapFormatter  = &MapFormatter{}
+)
 
 func FormatJson(s string) (string, error) {
 	return Jf.Format(s)
