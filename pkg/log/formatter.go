@@ -21,16 +21,16 @@ import (
 )
 
 var (
-	Jf *JsonFormatter = &JsonFormatter{}
-	Mf *MapFormatter  = &MapFormatter{}
+	jf *JsonFormatter = &JsonFormatter{}
+	mf *MapFormatter  = &MapFormatter{}
 )
 
 func FormatJson(s string) (string, error) {
-	return Jf.Format(s)
+	return jf.Format(s)
 }
 
 func FormatMap(m map[string]string) (string, error) {
-	return Mf.Format(m)
+	return mf.Format(m)
 }
 
 type JsonFormatter struct{}

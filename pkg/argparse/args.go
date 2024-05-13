@@ -172,8 +172,17 @@ func (a *Argument) ValidateArgs() error {
 }
 
 func (a *Argument) checkTransport() error {
-	transport := a.Transport
-	if transport != config.TTHeader && transport != config.Framed && transport != config.TTHeaderFramed && transport != "" {
+	transport := strings.ToLower(a.Transport)
+	switch transport {
+	case strings.ToLower(config.TTHeader):
+		a.Transport = config.TTHeader
+	case strings.ToLower(config.Framed):
+		a.Transport = config.Framed
+	case strings.ToLower(config.TTHeaderFramed):
+		a.Transport = config.TTHeaderFramed
+	case "":
+		return errors.New(errors.ArgParseError, "Transport type is empty")
+	default:
 		return errors.New(errors.ArgParseError, "Transport type is invalid")
 	}
 	return nil
