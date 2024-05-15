@@ -50,7 +50,7 @@ func InvokeRPC(conf *config.Config) (Client, error) {
 		bizErr, isBizErr := kerrors.FromBizStatusError(err)
 		if isBizErr {
 			if err := c.HandleBizError(bizErr); err != nil {
-				return nil, errors.New(errors.OutputError, "BizError parse error")
+				return nil, errors.New(errors.OutputError, "BizError parse error: %v", err)
 			}
 			return c, nil
 		}
