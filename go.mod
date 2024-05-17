@@ -2,8 +2,6 @@ module github.com/kitex-contrib/kitexcall
 
 go 1.21
 
-toolchain go1.21.9
-
 replace github.com/apache/thrift => github.com/apache/thrift v0.13.0
 
 require (
