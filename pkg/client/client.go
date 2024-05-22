@@ -28,6 +28,7 @@ type Client interface {
 	HandleBizError(bizErr kerrors.BizStatusErrorIface) error
 	Output() error
 	GetResponse() interface{}
+	GetMetaBackward() map[string]string
 }
 
 func InvokeRPC(conf *config.Config) (Client, error) {

@@ -35,13 +35,14 @@ import (
 )
 
 type GenericClientBase struct {
-	Client      genericclient.Client
-	Generic     generic.Generic
-	Conf        *config.Config
-	ClientOpts  []client.Option
-	CallOptions []callopt.Option
-	Req         interface{}
-	Resp        interface{}
+	Client       genericclient.Client
+	Generic      generic.Generic
+	Conf         *config.Config
+	ClientOpts   []client.Option
+	CallOptions  []callopt.Option
+	Req          interface{}
+	Resp         interface{}
+	MetaBackward map[string]string
 }
 
 func (c *GenericClientBase) Call() error {
@@ -55,14 +56,9 @@ func (c *GenericClientBase) Call() error {
 		return err
 	}
 
-	if c.Conf.MetaBackward != nil {
+	if c.Conf.MetaBackward {
 		// Receive all meta information from server side
-		for key := range c.Conf.MetaBackward {
-			val, ok := metainfo.RecvBackwardValue(ctx, key)
-			if ok {
-				c.Conf.MetaBackward[key] = val
-			}
-		}
+		c.MetaBackward = metainfo.RecvAllBackwardValues(ctx)
 	}
 
 	c.Resp = resp
@@ -73,8 +69,8 @@ func (c *GenericClientBase) Output() error {
 	var metaBackward string
 	var err error
 	// Backward metainfo
-	if c.Conf.MetaBackward != nil {
-		metaBackward, err = log.FormatMap(c.Conf.MetaBackward)
+	if c.Conf.MetaBackward {
+		metaBackward, err = log.FormatMap(c.MetaBackward)
 		if err != nil {
 			return err
 		}
@@ -88,7 +84,7 @@ func (c *GenericClientBase) Output() error {
 	log.Success()
 	log.Println(result)
 
-	if len(c.Conf.MetaBackward) != 0 {
+	if c.Conf.MetaBackward {
 		log.Println("\033[32mReceived metainfo from server: \033[0m")
 		log.Println(metaBackward)
 	}
@@ -142,7 +138,7 @@ func (c *GenericClientBase) BuildCallOptions() (context.Context, error) {
 
 	// Add metainfo to context
 	if c.Conf.Transport != "TTHeader" &&
-		(len(c.Conf.Meta) != 0 || len(c.Conf.MetaPersistent) != 0 || len(c.Conf.MetaBackward) != 0) {
+		(len(c.Conf.Meta) != 0 || len(c.Conf.MetaPersistent) != 0 || c.Conf.MetaBackward) {
 		return nil, errors.New(errors.ClientError, "It looks like the protocol does not support transmitting meta information")
 	}
 
@@ -157,7 +153,10 @@ func (c *GenericClientBase) BuildCallOptions() (context.Context, error) {
 				ctx = metainfo.WithPersistentValue(ctx, k, v)
 			}
 		}
-
+		if c.Conf.MetaBackward {
+			// must mark the context to receive backward meta information
+			ctx = metainfo.WithBackwardValues(ctx)
+		}
 	}
 	c.CallOptions = opts
 	return ctx, nil
@@ -186,6 +185,10 @@ func (c *GenericClientBase) HandleBizError(bizErr kerrors.BizStatusErrorIface) e
 
 func (c *GenericClientBase) GetResponse() interface{} {
 	return c.Resp
+}
+
+func (c *GenericClientBase) GetMetaBackward() map[string]string {
+	return c.MetaBackward
 }
 
 type ThriftGeneric struct {

@@ -37,7 +37,6 @@ func NewArgument() *Argument {
 		Config: config.Config{
 			Meta:           make(map[string]string),
 			MetaPersistent: make(map[string]string),
-			MetaBackward:   make(map[string]string),
 		},
 	}
 }
@@ -68,17 +67,6 @@ func (m *KVMap) Set(value string) error {
 	return nil
 }
 
-type KMap map[string]string
-
-func (s *KMap) String() string {
-	return ""
-}
-
-func (s *KMap) Set(value string) error {
-	(*s)[value] = ""
-	return nil
-}
-
 func (a *Argument) buildFlags() *flag.FlagSet {
 	f := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
@@ -91,11 +79,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 	f.StringVar(&a.IDLPath, "idl-path", "", "Specify the path of IDL file.")
 	f.StringVar(&a.IDLPath, "p", "", "Specify the path of IDL file. (shorthand)")
 
-	f.StringVar(&a.Service, "service", "", "Specify the service name.")
-	f.StringVar(&a.Service, "s", "", "Specify the service name. (shorthand)")
-
-	f.StringVar(&a.Method, "method", "", "Specify the method name.")
-	f.StringVar(&a.Method, "m", "", "Specify the method name. (shorthand)")
+	f.StringVar(&a.Method, "method", "", "Specify the method name in the format `ServiceName/MethodName` or or just `MethodName`, such as `GenericService/ExampleMethod`")
+	f.StringVar(&a.Method, "m", "", "Specify the method name in the format `ServiceName/MethodName` or just `MethodName`, such as `GenericService/ExampleMethod`. (shorthand)")
 
 	f.StringVar(&a.File, "file", "", "Specify the file path of input. Must be in JSON format.")
 	f.StringVar(&a.File, "f", "", "Specify the file path of input. Must be in JSON format. (shorthand)")
@@ -115,7 +100,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 
 	f.Var((*KVMap)(&a.Meta), "meta", "Specify the transient metainfo. Can be specified multiple times in key=value format.")
 	f.Var((*KVMap)(&a.MetaPersistent), "meta-persistent", "Specify the persistent metainfo. Can be specified multiple times in key=value format.")
-	f.Var((*KMap)(&a.MetaBackward), "meta-backward", "Specify the backward metainfo keys to receive from server. Can be specified multiple times.")
+
+	f.BoolVar(&a.MetaBackward, "meta-backward", false, "Enable receiving backward metainfo from server.")
 
 	return f
 }
@@ -215,13 +201,23 @@ func (a *Argument) checkService() error {
 		return errors.New(errors.ArgParseError, "At least one endpoint must be specified")
 	}
 
-	if a.Service == "" {
-		return errors.New(errors.ArgParseError, "Service name is required")
-	}
-
 	if a.Method == "" {
 		return errors.New(errors.ArgParseError, "Method name is required")
 	}
+
+	// Split the method string into service and method if '/'
+	parts := strings.Split(a.Method, "/")
+	switch len(parts) {
+	case 2: // If there is exactly one '/', it's treated as a separator
+		a.Service = parts[0]
+		a.Method = parts[1]
+	case 1: // If there is no '/', the whole string is treated as the method name
+		a.Method = parts[0]
+		a.Service = ""
+	default: // If there is more than one '/', it's an error
+		return errors.New(errors.ArgParseError, "Method name must be in the format `ServiceName/MethodName` or just `MethodName`")
+	}
+
 	return nil
 }
 
@@ -284,9 +280,9 @@ func Usage(f *flag.FlagSet) {
 Examples:
 	
 	# Specify the type of IDL as Thrift, the path of IDL file, service name, server endpoint, method name, and data to be sent
-	kitexcall -t thrift -idl-path /path/to/idl/file.thrift -s ServiceName -e 0.0.0.0:9999 -m MethodName -d '{"Msg": "hello"}'
+	kitexcall -t thrift -idl-path /path/to/idl/file.thrift -e 0.0.0.0:9999 -m ServiceName/MethodName -d '{"Msg": "hello"}'
 	# Or use the file as input:
-	kitexcall -t thrift -idl-path /path/to/idl/file.thrift -s ServiceName -e 0.0.0.0:9999 -m MethodName -f /path/to/input/file.json
+	kitexcall -t thrift -idl-path /path/to/idl/file.thrift -e 0.0.0.0:9999 -m ServiceName/MethodName -f /path/to/input/file.json
 	
 	`)
 }

@@ -44,7 +44,7 @@ type Config struct {
 	File           string // The file path of Input
 	Meta           map[string]string
 	MetaPersistent map[string]string
-	MetaBackward   map[string]string
+	MetaBackward   bool
 	BizError       bool
 }
 

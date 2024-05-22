@@ -180,7 +180,7 @@ func TestThriftGenericServer_invokeRPC(t *testing.T) {
 		Method:         "ExampleMethod",
 		Data:           "{\"Msg\": \"hello\"}",
 		Transport:      config.TTHeader,
-		MetaBackward:   map[string]string{"something-from-server": ""},
+		MetaBackward:   true,
 		Meta:           map[string]string{"temp": "temp-value"},
 		MetaPersistent: map[string]string{"logid": "12345"},
 	}
@@ -203,9 +203,9 @@ func TestThriftGenericServer_invokeRPC(t *testing.T) {
 	DeepEqual(t, serverData, expectedData)
 
 	// MetaBackward
-	if len(conf.MetaBackward) > 0 {
-		if _, ok := conf.MetaBackward["something-from-server"]; !ok {
-			t.Errorf("Expected meta backward key 'something-from-server' not found in response")
+	if conf.MetaBackward {
+		if res := cli.GetMetaBackward(); res == nil {
+			t.Errorf("Expected meta backward not found in response")
 		}
 	}
 }
@@ -222,7 +222,7 @@ func TestPbGenericServer_invokeRPC(t *testing.T) {
 		Method:         "ExampleMethod",
 		Data:           "{\"Msg\": \"hello\"}",
 		Transport:      config.TTHeader,
-		MetaBackward:   map[string]string{"something-from-server": ""},
+		MetaBackward:   true,
 		Meta:           map[string]string{"temp": "temp-value"},
 		MetaPersistent: map[string]string{"logid": "12345"},
 	}
@@ -245,9 +245,9 @@ func TestPbGenericServer_invokeRPC(t *testing.T) {
 	DeepEqual(t, serverData, expectedData)
 
 	// MetaBackward
-	if len(conf.MetaBackward) > 0 {
-		if _, ok := conf.MetaBackward["something-from-server"]; !ok {
-			t.Errorf("Expected meta backward key 'something-from-server' not found in response")
+	if conf.MetaBackward {
+		if res := cli.GetMetaBackward(); res == nil {
+			t.Errorf("Expected meta backward not found in response")
 		}
 	}
 }

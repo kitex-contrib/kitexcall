@@ -35,7 +35,7 @@ func TestAugment_ParseArgs(t *testing.T) {
 			name: "Test with valid arguments",
 			args: []string{
 				"-type", "thrift", "-idl-path", "../../internal/test/example_service.thrift",
-				"-service", "ExampleService", "-method", "exampleMethod", "-data", "{\"Msg\": \"hello\"}",
+				"-method", "ExampleService/exampleMethod", "-data", "{\"Msg\": \"hello\"}",
 				"-endpoint", "0.0.0.0:9999", "-verbose", "-transport", "TTHeader",
 				"-meta", "temp=temp-value", "-meta-persistent", "logid=12345",
 				"-meta-backward", "something",
@@ -46,7 +46,7 @@ func TestAugment_ParseArgs(t *testing.T) {
 		{
 			name: "Test with missing IDL path",
 			args: []string{
-				"-type", "protobuf", "-service", "example", "-method", "hello",
+				"-type", "protobuf", "-method", "example/hello",
 				"-data", "world", "-endpoint", "0.0.0.0:9999", "-verbose",
 				"-transport", "Framed",
 			},
