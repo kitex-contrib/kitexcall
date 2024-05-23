@@ -37,7 +37,7 @@ type Config struct {
 	Type           string
 	IDLPath        string
 	Endpoint       []string
-	Service        string
+	IDLServiceName string
 	Method         string
 	Data           string
 	Transport      string

@@ -176,7 +176,7 @@ func TestThriftGenericServer_invokeRPC(t *testing.T) {
 		Type:           config.Thrift,
 		Endpoint:       []string{thriftServerHost},
 		IDLPath:        thriftFilePath,
-		Service:        "GenericService",
+		IDLServiceName: "GenericService",
 		Method:         "ExampleMethod",
 		Data:           "{\"Msg\": \"hello\"}",
 		Transport:      config.TTHeader,
@@ -218,7 +218,7 @@ func TestPbGenericServer_invokeRPC(t *testing.T) {
 		Type:           config.Protobuf,
 		Endpoint:       []string{pbServerHostPort},
 		IDLPath:        pbFilePath,
-		Service:        "GenericService",
+		IDLServiceName: "GenericService",
 		Method:         "ExampleMethod",
 		Data:           "{\"Msg\": \"hello\"}",
 		Transport:      config.TTHeader,
@@ -257,13 +257,13 @@ func TestBizErrorGenericServer_invokeRPC(t *testing.T) {
 	defer bizErrorGenericServer.Stop()
 
 	conf := &config.Config{
-		Type:      config.Thrift,
-		Endpoint:  []string{bizErrorServerHost},
-		IDLPath:   thriftFilePath,
-		Service:   "GenericService",
-		Method:    "ExampleMethod",
-		Transport: config.TTHeader,
-		BizError:  true,
+		Type:           config.Thrift,
+		Endpoint:       []string{bizErrorServerHost},
+		IDLPath:        thriftFilePath,
+		IDLServiceName: "GenericService",
+		Method:         "ExampleMethod",
+		Transport:      config.TTHeader,
+		BizError:       true,
 	}
 
 	c := client.NewThriftGeneric()

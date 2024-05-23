@@ -218,7 +218,7 @@ func (c *ThriftGeneric) Init(Conf *config.Config) error {
 		return err
 	}
 
-	cli, err := genericclient.NewClient(Conf.Service, c.Generic, c.ClientOpts...)
+	cli, err := genericclient.NewClient(Conf.IDLServiceName, c.Generic, c.ClientOpts...)
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func (c *PbGeneric) Init(Conf *config.Config) error {
 		return err
 	}
 
-	cli, err := genericclient.NewClient(Conf.Service, c.Generic, c.ClientOpts...)
+	cli, err := genericclient.NewClient(Conf.IDLServiceName, c.Generic, c.ClientOpts...)
 	if err != nil {
 		return err
 	}

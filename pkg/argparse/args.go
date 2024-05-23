@@ -79,8 +79,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 	f.StringVar(&a.IDLPath, "idl-path", "", "Specify the path of IDL file.")
 	f.StringVar(&a.IDLPath, "p", "", "Specify the path of IDL file. (shorthand)")
 
-	f.StringVar(&a.Method, "method", "", "Specify the method name in the format `ServiceName/MethodName` or or just `MethodName`, such as `GenericService/ExampleMethod`")
-	f.StringVar(&a.Method, "m", "", "Specify the method name in the format `ServiceName/MethodName` or just `MethodName`, such as `GenericService/ExampleMethod`. (shorthand)")
+	f.StringVar(&a.Method, "method", "", "Specify the method name in the format `IDLServiceName/MethodName` or or just `MethodName`, such as `GenericService/ExampleMethod`")
+	f.StringVar(&a.Method, "m", "", "Specify the method name in the format `IDLServiceName/MethodName` or just `MethodName`, such as `GenericService/ExampleMethod`. (shorthand)")
 
 	f.StringVar(&a.File, "file", "", "Specify the file path of input. Must be in JSON format.")
 	f.StringVar(&a.File, "f", "", "Specify the file path of input. Must be in JSON format. (shorthand)")
@@ -209,11 +209,11 @@ func (a *Argument) checkService() error {
 	parts := strings.Split(a.Method, "/")
 	switch len(parts) {
 	case 2: // If there is exactly one '/', it's treated as a separator
-		a.Service = parts[0]
+		a.IDLServiceName = parts[0]
 		a.Method = parts[1]
 	case 1: // If there is no '/', the whole string is treated as the method name
 		a.Method = parts[0]
-		a.Service = ""
+		a.IDLServiceName = ""
 	default: // If there is more than one '/', it's an error
 		return errors.New(errors.ArgParseError, "Method name must be in the format `ServiceName/MethodName` or just `MethodName`")
 	}
@@ -263,7 +263,7 @@ func (a *Argument) BuildConfig() *config.Config {
 		Type:           a.Type,
 		IDLPath:        a.IDLPath,
 		Endpoint:       a.Endpoint,
-		Service:        a.Service,
+		IDLServiceName: a.IDLServiceName,
 		Data:           a.Data,
 		File:           a.File,
 		Transport:      a.Transport,
