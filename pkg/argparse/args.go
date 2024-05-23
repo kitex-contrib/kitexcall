@@ -167,7 +167,6 @@ func (a *Argument) checkTransport() error {
 	case strings.ToLower(config.TTHeaderFramed):
 		a.Transport = config.TTHeaderFramed
 	case "":
-		return errors.New(errors.ArgParseError, "Transport type is empty")
 	default:
 		return errors.New(errors.ArgParseError, "Transport type is invalid")
 	}
