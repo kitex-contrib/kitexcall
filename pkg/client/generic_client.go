@@ -27,6 +27,8 @@ import (
 	"github.com/cloudwego/kitex/client/genericclient"
 	"github.com/cloudwego/kitex/pkg/generic"
 	"github.com/cloudwego/kitex/pkg/kerrors"
+	"github.com/cloudwego/kitex/pkg/remote"
+	remote_transmeta "github.com/cloudwego/kitex/pkg/remote/transmeta"
 	"github.com/cloudwego/kitex/pkg/transmeta"
 	"github.com/cloudwego/kitex/transport"
 	"github.com/kitex-contrib/kitexcall/pkg/config"
@@ -128,6 +130,16 @@ func (c *GenericClientBase) BuildClientOptions() error {
 		}
 	}
 
+	if (c.Conf.Transport == "TTHeader" || c.Conf.Transport == "TTHeaderFramed") && c.Conf.IDLServiceName != "" {
+		opts = append(opts, client.WithMetaHandler(remote.NewCustomMetaHandler(
+			remote.WithWriteMeta(func(ctx context.Context, msg remote.Message) (context.Context, error) {
+				strInfo := msg.TransInfo().TransStrInfo()
+				strInfo[remote_transmeta.HeaderIDLServiceName] = c.Conf.IDLServiceName
+				return ctx, nil
+			}),
+		)))
+	}
+
 	c.ClientOpts = opts
 	return nil
 }
@@ -218,7 +230,7 @@ func (c *ThriftGeneric) Init(Conf *config.Config) error {
 		return err
 	}
 
-	cli, err := genericclient.NewClient(Conf.IDLServiceName, c.Generic, c.ClientOpts...)
+	cli, err := genericclient.NewClient("WaitingForServiceDiscovery", c.Generic, c.ClientOpts...)
 	if err != nil {
 		return err
 	}

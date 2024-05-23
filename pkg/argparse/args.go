@@ -79,8 +79,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 	f.StringVar(&a.IDLPath, "idl-path", "", "Specify the path of IDL file.")
 	f.StringVar(&a.IDLPath, "p", "", "Specify the path of IDL file. (shorthand)")
 
-	f.StringVar(&a.Method, "method", "", "Specify the method name in the format `IDLServiceName/MethodName` or or just `MethodName`, such as `GenericService/ExampleMethod`")
-	f.StringVar(&a.Method, "m", "", "Specify the method name in the format `IDLServiceName/MethodName` or just `MethodName`, such as `GenericService/ExampleMethod`. (shorthand)")
+	f.StringVar(&a.Method, "method", "", "Specify the method name in the format `IDLServiceName/MethodName` or just `MethodName`, such as `GenericService/ExampleMethod`. Note that if server opened MultiService mode, IDLServiceName is needed and you should set `transport` flag with TTHeader or TTHeaderFramed")
+	f.StringVar(&a.Method, "m", "", "Specify the method name. (shorthand)")
 
 	f.StringVar(&a.File, "file", "", "Specify the file path of input. Must be in JSON format.")
 	f.StringVar(&a.File, "f", "", "Specify the file path of input. Must be in JSON format. (shorthand)")
