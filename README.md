@@ -1,6 +1,7 @@
 # **kitexcall**
 
 English | [中文](README_cn.md)
+
 Kitexcall is a command-line tool for sending JSON general requests using kitex, similar to how curl is used for HTTP.
 
 ## Features
