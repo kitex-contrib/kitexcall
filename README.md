@@ -1,12 +1,9 @@
 # **kitexcall**
----
 
 English | [中文](README_cn.md)
 Kitexcall is a command-line tool for sending JSON general requests using kitex, similar to how curl is used for HTTP.
 
 ## Features
-
----
 
 - **Supports Thrift/Protobuf:** It supports IDL in Thrift/Protobuf formats.
 - **Supports Multiple Transport Protocols:** It supports transport protocols like Buffered, TTHeader, Framed, and TTHeaderFramed, with plans to support GRPC (Protobuf and Thrift Streaming) in the future.
@@ -18,15 +15,11 @@ Kitexcall is a command-line tool for sending JSON general requests using kitex, 
 
 ## Installation
 
----
-
 ```bash
 go install github.com/kitex-contrib/kitexcall@latest
 ```
 
 ## Usage
-
----
 
 ### Basic Usage
 

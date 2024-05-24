@@ -1,11 +1,9 @@
 # kitexcall
----
 
 中文 | [English](README.md)
 kitexcall 是使用 kitex 发送 json 通用请求的命令行工具，像是 curl 之于 HTTP。
 
 ## **Features**
----
 
 - **支持 Thrift/Protobuf**：支持 Thrift/Protobuf 格式的 IDL。
 - **支持多种传输协议**：支持 Buffered、TTHeader、Framed、TTHeaderFramed 传输协议，未来也计划支持 GRPC（Protobuf 及 Thrift Streaming）
@@ -17,15 +15,11 @@ kitexcall 是使用 kitex 发送 json 通用请求的命令行工具，像是 cu
 
 ## **Installation**
 
----
-
 ```bash
 go install github.com/kitex-contrib/kitexcall@latest
 ```
 
 ## **Usage**
-
----
 
 ### 基本用法
 
