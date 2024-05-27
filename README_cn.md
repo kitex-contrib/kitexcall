@@ -1,4 +1,4 @@
-# kitexcall
+# kitexcall (*这是一个社区驱动的项目*)
 
 中文 | [English](README.md)
 
@@ -26,26 +26,6 @@ go install github.com/kitex-contrib/kitexcall@latest
 
 使用 `kitexcall` 工具时，需要指定多个必选参数，包括 IDL 文件的路径、方法名以及要发送的数据。示例：
 
-- 直接指定请求数据：
-
-```bash
-kitexcall -idl-path echo.thrift -m echo -d '{"message": "hello"}' -e 127.0.0.1:9999
-[Status]: Success
-{
-    "message": "hello"
-}
-```
-
-- 从文件读入请求数据：
-
-```bash
-kitexcall -idl-path echo.thrift -m echo -d '{"message": "hello"}' -e 127.0.0.1:9999 -f input.json
-[Status]: Success
-{
-    "message": "hello"
-}
-```
-
 对应的 IDL 文件:
 
 ```python
@@ -66,7 +46,7 @@ service Echo {
 }
 ```
 
-对应的 json 格式请求数据：
+创建input.json文件指定json格式请求数据：
 
 ```python
 {
@@ -95,6 +75,32 @@ func main() {
     } else {
         log.Println("server stopped")
     }
+}
+```
+
+- 直接指定请求数据：
+
+```bash
+kitexcall -idl-path echo.thrift -m echo -d '{"message": "hello"}' -e 127.0.0.1:9999
+```
+输出：
+```
+[Status]: Success
+{
+    "message": "hello"
+}
+```
+
+- 从文件读入请求数据：
+
+```bash
+kitexcall -idl-path echo.thrift -m echo -d '{"message": "hello"}' -e 127.0.0.1:9999 -f input.json
+```
+输出：
+```
+[Status]: Success
+{
+    "message": "hello"
 }
 ```
 
@@ -194,3 +200,6 @@ kitexcall -m ExampleMethod -biz-error
 #### 启用详细模式
 
 使用 `-verbose` 或 `-v` 标志启用详细模式，以提供更详细的输出信息。
+
+---
+维护者: [Zzhiter](https://github.com/Zzhiter)

@@ -1,4 +1,4 @@
-# **kitexcall**
+# **kitexcall** (*This is a community driven project*)
 
 English | [中文](README_cn.md)
 
@@ -9,7 +9,7 @@ Kitexcall is a command-line tool for sending JSON general requests using kitex, 
 - **Supports Thrift/Protobuf:** It supports IDL in Thrift/Protobuf formats.
 - **Supports Multiple Transport Protocols:** It supports transport protocols like Buffered, TTHeader, Framed, and TTHeaderFramed, with plans to support GRPC (Protobuf and Thrift Streaming) in the future.
 - **Supports Common Client Options:** It allows specify common client options, such as client.WithHostPorts, etc.
-- **Supports manual data input from the command line and local files: **Request data can be read from command line arguments or local files.
+- **Supports manual data input from the command line and local files:** Request data can be read from command line arguments or local files.
 - **Supports Metadata Passing:** It supports sending transient keys (WithValue) and persistent keys (WithPersistentValue), and also supports receiving backward metadata (Backward) returned by the server.
 - **Supports Receiving Business Custom Exceptions:** It can receive business custom exception error codes, error messages, and additional information.
 - **Supports Multiple Output Formats:** By default, it outputs a human-friendly readable format, and plans to support parseable formats for better integration with other automation tools.
@@ -26,27 +26,7 @@ go install github.com/kitex-contrib/kitexcall@latest
 
 When using the kitexcall tool, you need to specify several required arguments, including the path to the IDL file, the method name, and the data to be sent. Example:
 
-- Directly specifying request data:
-
-```bash
-kitexcall -idl-path echo.thrift -m echo -d '{"message": "hello"}' -e 127.0.0.1:9999
-[Status]: Success
-{
-    "message": "hello"
-}
-```
-
-- Or reading request data from a file:
-
-```bash
-kitexcall -idl-path echo.thrift -m echo -d '{"message": "hello"}' -e 127.0.0.1:9999 -f input.json
-[Status]: Success
-{
-    "message": "hello"
-}
-```
-
-- IDL File：
+- IDL file：
 
 ```thrift
 // echo.thrift
@@ -66,7 +46,7 @@ service Echo {
 }
 ```
 
-- JSON Format Request Data
+- Creating a file input.json specifying JSON format request data:
 
 ```json
 {
@@ -74,7 +54,7 @@ service Echo {
 }
 ```
 
-- Server
+- Server:
 
 ```go
 var _ api.Echo = &EchoImpl{}
@@ -95,6 +75,32 @@ func main() {
     } else {
         log.Println("server stopped")
     }
+}
+```
+
+- Directly specifying request data:
+
+```bash
+kitexcall -idl-path echo.thrift -m echo -d '{"message": "hello"}' -e 127.0.0.1:9999
+```
+Output:
+```
+[Status]: Success
+{
+    "message": "hello"
+}
+```
+
+- Or reading request data from a file:
+
+```bash
+kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -f input.json
+```
+Output:
+```
+[Status]: Success
+{
+    "message": "hello"
 }
 ```
 
@@ -192,3 +198,6 @@ kitexcall -m ExampleMethod -biz-error
 #### Enable Verbose Mode
 
 Use the `-verbose` or `-v` flag to enable verbose mode, providing more detailed output information.
+
+---
+Maintained by: [Zzhiter](https://github.com/Zzhiter)
