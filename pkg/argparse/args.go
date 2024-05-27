@@ -73,8 +73,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 	f.BoolVar(&a.help, "help", false, `Print usage instructions and exit.`)
 	f.BoolVar(&a.help, "h", false, `Print usage instructions and exit.`)
 
-	f.StringVar(&a.Type, "type", "unknown", "Specify the type of IDL: 'thrift' or 'protobuf'.")
-	f.StringVar(&a.Type, "t", "unknown", "Specify the type of IDL: 'thrift' or 'protobuf'. (shorthand)")
+	f.StringVar(&a.Type, "type", "unknown", "Specify the type of IDL: 'thrift' or 'protobuf'. Supports inference by IDL file type, default 'thrift'.")
+	f.StringVar(&a.Type, "t", "unknown", "Specify the type of IDL: 'thrift' or 'protobuf'. Supports inference by IDL file type, default 'thrift'.(shorthand)")
 
 	f.StringVar(&a.IDLPath, "idl-path", "", "Specify the path of IDL file.")
 	f.StringVar(&a.IDLPath, "p", "", "Specify the path of IDL file. (shorthand)")
