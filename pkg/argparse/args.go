@@ -118,7 +118,6 @@ func (a *Argument) PreJudge(f *flag.FlagSet) {
 		Usage(f)
 		os.Exit(0)
 	}
-
 }
 
 func (a *Argument) ParseArgs() error {
