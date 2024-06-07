@@ -30,6 +30,11 @@ const (
 	TTHeaderFramed string = "TTHeaderFramed"
 )
 
+//kitexcall version
+const (
+	Version        string = "0.1.1"
+)
+
 // We provide a general configuration
 // so that it can be utilized by others apart from kitexcall.
 type Config struct {
@@ -46,6 +51,7 @@ type Config struct {
 	MetaPersistent map[string]string
 	MetaBackward   bool
 	BizError       bool
+	Version        bool
 }
 
 type ConfigBuilder interface {

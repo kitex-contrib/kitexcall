@@ -103,6 +103,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 
 	f.BoolVar(&a.MetaBackward, "meta-backward", false, "Enable receiving backward metainfo from server.")
 
+	f.BoolVar(&a.Version, "version", false, "Show the version of kitexcall.")
+
 	return f
 }
 
@@ -116,6 +118,7 @@ func (a *Argument) PreJudge(f *flag.FlagSet) {
 		Usage(f)
 		os.Exit(0)
 	}
+
 }
 
 func (a *Argument) ParseArgs() error {
@@ -125,6 +128,11 @@ func (a *Argument) ParseArgs() error {
 	}
 
 	a.PreJudge(f)
+
+	if a.Version {
+ 		fmt.Printf("kitexcall version %s\n", config.Version)
+        os.Exit(0)
+	}
 
 	log.Verbose = a.Verbose
 	log.Info("Parse args succeed")
@@ -270,6 +278,7 @@ func (a *Argument) BuildConfig() *config.Config {
 		MetaPersistent: a.MetaPersistent,
 		MetaBackward:   a.MetaBackward,
 		BizError:       a.BizError,
+		Version:		a.Version,
 	}
 }
 
