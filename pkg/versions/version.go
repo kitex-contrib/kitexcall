@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
- package versions
+package versions
 
 // Name and Version info of this framework, used for statistics and debug
 const (
