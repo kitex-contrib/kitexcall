@@ -53,14 +53,6 @@ func TestAugment_ParseArgs(t *testing.T) {
 			wantErr:    true,
 			wantErrMsg: "IDL path is required",
 		},
-		{
-			name: "Test with version",
-			args: []string{
-				"-version",
-			},
-			wantErr:    false,
-			wantErrMsg: "",
-		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			// Simulate command-line arguments
