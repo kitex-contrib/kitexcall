@@ -30,11 +30,6 @@ const (
 	TTHeaderFramed string = "TTHeaderFramed"
 )
 
-//kitexcall version
-const (
-	Version        string = "0.1.1"
-)
-
 // We provide a general configuration
 // so that it can be utilized by others apart from kitexcall.
 type Config struct {

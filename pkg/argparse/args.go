@@ -25,6 +25,7 @@ import (
 	"github.com/kitex-contrib/kitexcall/pkg/config"
 	"github.com/kitex-contrib/kitexcall/pkg/errors"
 	"github.com/kitex-contrib/kitexcall/pkg/log"
+	"github.com/kitex-contrib/kitexcall/pkg/versions"
 )
 
 type Argument struct {
@@ -129,8 +130,8 @@ func (a *Argument) ParseArgs() error {
 	a.PreJudge(f)
 
 	if a.Version {
- 		fmt.Printf("kitexcall version %s\n", config.Version)
-        os.Exit(0)
+		fmt.Printf("kitexcall version %s\n", versions.Version)
+		os.Exit(0)
 	}
 
 	log.Verbose = a.Verbose
@@ -277,7 +278,7 @@ func (a *Argument) BuildConfig() *config.Config {
 		MetaPersistent: a.MetaPersistent,
 		MetaBackward:   a.MetaBackward,
 		BizError:       a.BizError,
-		Version:		a.Version,
+		Version:        a.Version,
 	}
 }
 
