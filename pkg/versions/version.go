@@ -18,6 +18,6 @@ package versions
 
 // Name and Version info of this framework, used for statistics and debug
 const (
-	Name    = "Kitexcall"
+	Name    = "kitexcall"
 	Version = "v0.1.1"
 )
