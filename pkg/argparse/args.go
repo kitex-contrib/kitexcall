@@ -30,7 +30,7 @@ import (
 
 type Argument struct {
 	config.Config
-	help bool
+	help    bool
 	version bool
 }
 
@@ -105,6 +105,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 
 	f.BoolVar(&a.MetaBackward, "meta-backward", false, "Enable receiving backward metainfo from server.")
 
+	f.BoolVar(&a.version, "version", false, "Show the version of kitexcall.")
+
 	return f
 }
 
@@ -129,7 +131,7 @@ func (a *Argument) ParseArgs() error {
 	a.PreJudge(f)
 
 	if a.version {
-		fmt.Printf("kitexcall version %s\n", versions.Version)
+		fmt.Fprintln(os.Stderr, versions.Version)
 		os.Exit(0)
 	}
 
