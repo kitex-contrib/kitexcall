@@ -25,11 +25,13 @@ import (
 	"github.com/kitex-contrib/kitexcall/pkg/config"
 	"github.com/kitex-contrib/kitexcall/pkg/errors"
 	"github.com/kitex-contrib/kitexcall/pkg/log"
+	"github.com/kitex-contrib/kitexcall/pkg/versions"
 )
 
 type Argument struct {
 	config.Config
-	help bool
+	help    bool
+	version bool
 }
 
 func NewArgument() *Argument {
@@ -103,6 +105,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 
 	f.BoolVar(&a.MetaBackward, "meta-backward", false, "Enable receiving backward metainfo from server.")
 
+	f.BoolVar(&a.version, "version", false, "Show the version of kitexcall.")
+
 	return f
 }
 
@@ -125,6 +129,11 @@ func (a *Argument) ParseArgs() error {
 	}
 
 	a.PreJudge(f)
+
+	if a.version {
+		fmt.Fprintln(os.Stderr, versions.Version)
+		os.Exit(0)
+	}
 
 	log.Verbose = a.Verbose
 	log.Info("Parse args succeed")
