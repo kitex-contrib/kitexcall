@@ -107,6 +107,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 
 	f.BoolVar(&a.version, "version", false, "Show the version of kitexcall.")
 
+	f.BoolVar(&a.Quiet, "quiet", false, "Enable only print rpc response.")
+
 	return f
 }
 
@@ -279,6 +281,7 @@ func (a *Argument) BuildConfig() *config.Config {
 		MetaPersistent: a.MetaPersistent,
 		MetaBackward:   a.MetaBackward,
 		BizError:       a.BizError,
+		Quiet:          a.Quiet,
 	}
 }
 

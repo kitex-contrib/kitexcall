@@ -46,6 +46,7 @@ type Config struct {
 	MetaPersistent map[string]string
 	MetaBackward   bool
 	BizError       bool
+	Quiet          bool
 }
 
 type ConfigBuilder interface {

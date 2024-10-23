@@ -18,6 +18,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/bytedance/gopkg/cloud/metainfo"
@@ -83,8 +84,10 @@ func (c *GenericClientBase) Output() error {
 		return err
 	}
 
-	log.Success()
-	log.Println(result)
+	if !c.Conf.Quiet {
+		log.Success()
+	}
+	fmt.Print(result)
 
 	if c.Conf.MetaBackward {
 		log.Println("\033[32mReceived metainfo from server: \033[0m")
