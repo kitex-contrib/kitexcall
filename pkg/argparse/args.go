@@ -43,14 +43,14 @@ func NewArgument() *Argument {
 	}
 }
 
-type EndpointList []string
+type StringList []string
 
-func (e *EndpointList) String() string {
-	return strings.Join(*e, ",")
+func (s *StringList) String() string {
+	return strings.Join(*s, ",")
 }
 
-func (e *EndpointList) Set(value string) error {
-	*e = append(*e, value)
+func (s *StringList) Set(value string) error {
+	*s = append(*s, value)
 	return nil
 }
 
@@ -90,8 +90,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 	f.StringVar(&a.Data, "data", "", "Specify the data to be sent as a JSON formatted string.")
 	f.StringVar(&a.Data, "d", "", "Specify the data to be sent as a JSON formatted string. (shorthand)")
 
-	f.Var((*EndpointList)(&a.Endpoint), "endpoint", "Specify the server endpoints. Can be repeated.")
-	f.Var((*EndpointList)(&a.Endpoint), "e", "Specify the server endpoints. Can be repeated. (shorthand)")
+	f.Var((*StringList)(&a.Endpoint), "endpoint", "Specify the server endpoints. Can be repeated.")
+	f.Var((*StringList)(&a.Endpoint), "e", "Specify the server endpoints. Can be repeated. (shorthand)")
 
 	f.BoolVar(&a.Verbose, "verbose", false, "Enable verbose mode.")
 	f.BoolVar(&a.Verbose, "v", false, "Enable verbose mode. (shorthand)")
@@ -108,6 +108,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 	f.BoolVar(&a.version, "version", false, "Show the version of kitexcall.")
 
 	f.BoolVar(&a.Quiet, "quiet", false, "Enable only print rpc response.")
+
+	f.Var((*StringList)(&a.IncludePath), "include-path", "Specify additional paths for imported IDL files. Can be repeated.")
 
 	return f
 }
@@ -242,6 +244,14 @@ func (a *Argument) checkIDL() error {
 		return errors.New(errors.ArgParseError, "IDL file does not exist")
 	}
 
+	if a.IncludePath == nil {
+		for _, path := range a.IncludePath {
+			if _, err := os.Stat(path); os.IsNotExist(err) {
+				return errors.New(errors.ArgParseError, "Include path does not exist")
+			}
+		}
+	}
+
 	switch a.Type {
 	case "thrift", "protobuf":
 	case "unknown":
@@ -282,6 +292,7 @@ func (a *Argument) BuildConfig() *config.Config {
 		MetaBackward:   a.MetaBackward,
 		BizError:       a.BizError,
 		Quiet:          a.Quiet,
+		IncludePath:    a.IncludePath,
 	}
 }
 
