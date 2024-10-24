@@ -121,7 +121,7 @@ kitexcall -idl-path echo.thrift -m echo -d '{"message": "hello"}' -e 127.0.0.1:9
 - `-meta`：指定传递给 server 的单跳透传元信息。可以指定多个，格式为 key=value。
 - `-meta-persistent`：指定传递给 server 的持续透传元信息。可以指定多个，格式为 key=value。
 - `-meta-backward`：启用从服务器接收反向透传元信息。
-- `-q`: 只输出Json相应，不输出其他提示信息。
+- `-q`: 只输出Json响应，不输出其他提示信息。
 - `-verbose` 或 `-v`：启用详细模式。
 
 ### 详细描述
