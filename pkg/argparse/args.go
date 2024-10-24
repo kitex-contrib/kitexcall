@@ -244,7 +244,7 @@ func (a *Argument) checkIDL() error {
 		return errors.New(errors.ArgParseError, "IDL file does not exist")
 	}
 
-	if a.IncludePath == nil {
+	if a.IncludePath != nil {
 		for _, path := range a.IncludePath {
 			if _, err := os.Stat(path); os.IsNotExist(err) {
 				return errors.New(errors.ArgParseError, "Include path does not exist")
