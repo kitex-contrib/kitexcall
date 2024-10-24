@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -38,14 +40,17 @@ import (
 )
 
 var (
-	thriftGenericServer   server.Server
-	pbGenericServer       server.Server
-	bizErrorGenericServer server.Server
-	thriftServerHost      = "127.0.0.1:9919"
-	pbServerHostPort      = "127.0.0.1:9199"
-	bizErrorServerHost    = "127.0.0.1:9109"
-	pbFilePath            = "./example_service.proto"
-	thriftFilePath        = "./example_service.thrift"
+	thriftGenericServer               server.Server
+	pbGenericServer                   server.Server
+	bizErrorGenericServer             server.Server
+	thriftGenericServerWithImportPath server.Server
+	thriftServerHost                  = "127.0.0.1:9919"
+	pbServerHostPort                  = "127.0.0.1:9199"
+	bizErrorServerHost                = "127.0.0.1:9109"
+	pbFilePath                        = "./example_service.proto"
+	thriftFilePath                    = "./example_service.thrift"
+	example2ServerHost                = "127.0.0.1:9100"
+	example2FilePath                  = "./example2.thrift"
 )
 
 func InitPbGenericServer() {
@@ -98,6 +103,30 @@ func InitThriftGenericServer() {
 	}()
 
 	WaitServerStart(thriftServerHost)
+}
+
+func InitThriftGenericServerWithImportPath() {
+	p, err := generic.NewThriftFileProvider(example2FilePath, "./idl")
+	if err != nil {
+		panic(err)
+	}
+	g, err := generic.JSONThriftGeneric(p)
+	if err != nil {
+		panic(err)
+	}
+
+	go func() {
+		addr, _ := net.ResolveTCPAddr("tcp", example2ServerHost)
+		klog.Infof("Starting Example2 service on %s", addr.String())
+
+		thriftGenericServerWithImportPath = genericserver.NewServer(new(GenericServiceImpl), g, server.WithServiceAddr(addr))
+
+		if err := thriftGenericServerWithImportPath.Run(); err != nil {
+			klog.Fatalf("Failed to run Example2 service: %v", err)
+		}
+	}()
+
+	WaitServerStart(example2ServerHost)
 }
 
 // WaitServerStart waits for server to start for at most 1 second
@@ -290,5 +319,49 @@ func TestBizErrorGenericServer_invokeRPC(t *testing.T) {
 	}
 	if bizErr.BizMessage() != expectedMessage {
 		t.Errorf("Expected BizMessage %s, got %s", expectedMessage, bizErr.BizMessage())
+	}
+}
+
+func TestExample2Service_withImportPath(t *testing.T) {
+	InitThriftGenericServerWithImportPath()
+	defer thriftGenericServerWithImportPath.Stop()
+
+	currentPath, _ := os.Getwd()
+	includePath := filepath.Join(currentPath, "idl")
+
+	conf := &config.Config{
+		Type:           config.Thrift,
+		Endpoint:       []string{example2ServerHost},
+		IDLPath:        example2FilePath,
+		IDLServiceName: "Example2Service",
+		Method:         "Example2Method",
+		Data:           "{\"Msg\": \"hello\", \"User\": {\"UserID\": \"123\", \"UserName\": \"Alice\", \"Age\": 25}}",
+		Transport:      config.TTHeader,
+		MetaBackward:   true,
+		IncludePath:    []string{includePath},
+	}
+
+	cli, err := client.InvokeRPC(conf)
+	if err != nil {
+		t.Fatalf("InvokeRPC failed: %v", err)
+	}
+
+	resp := cli.GetResponse()
+	if resp == nil {
+		t.Fatalf("Response is nil")
+	}
+
+	expectedResponse := `{"Msg":"world", "BaseResp": {"StatusCode": 0, "StatusMessage": ""}}`
+
+	var serverData, expectedData interface{}
+	json.Unmarshal([]byte(resp.(string)), &serverData)
+	json.Unmarshal([]byte(expectedResponse), &expectedData)
+	DeepEqual(t, serverData, expectedData)
+
+	// MetaBackward
+	if conf.MetaBackward {
+		if res := cli.GetMetaBackward(); res == nil {
+			t.Errorf("Expected meta backward not found in response")
+		}
 	}
 }

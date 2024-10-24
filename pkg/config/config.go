@@ -47,6 +47,7 @@ type Config struct {
 	MetaBackward   bool
 	BizError       bool
 	Quiet          bool
+	IncludePath    []string
 }
 
 type ConfigBuilder interface {

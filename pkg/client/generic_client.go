@@ -217,7 +217,7 @@ func NewThriftGeneric() *ThriftGeneric {
 
 func (c *ThriftGeneric) Init(Conf *config.Config) error {
 	// Waiting for server reflection
-	p, err := generic.NewThriftFileProvider(Conf.IDLPath)
+	p, err := generic.NewThriftFileProvider(Conf.IDLPath, Conf.IncludePath...)
 	if err != nil {
 		return err
 	}
