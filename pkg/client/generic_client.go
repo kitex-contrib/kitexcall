@@ -54,7 +54,11 @@ func (c *GenericClientBase) Call() error {
 		return err
 	}
 
-	resp, err := c.Client.GenericCall(ctx, c.Conf.Method, c.Conf.Data, c.CallOptions...)
+	if err = c.BuildRequest(); err != nil {
+	        return err
+        }
+        resp, err := c.Client.GenericCall(ctx, c.Conf.Method, c.Req, c.CallOptions...)
+
 	if err != nil {
 		return err
 	}
