@@ -6,15 +6,15 @@ jobs:
   compatibility-test:
     strategy:
       matrix:
-        go: [ "1.20", "1.21", "1.22" ]
-        os: [ X64, ARM64 ]
-    runs-on: ${{ matrix.os }}
+        go: [ "1.20", "1.21", "1.22", "1.23" ]
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
+          cache: true
       - name: Unit Test
         run: go test -gcflags=-l -race -covermode=atomic ./...
 
