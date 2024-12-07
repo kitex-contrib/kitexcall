@@ -256,7 +256,7 @@ func NewPbGeneric() *PbGeneric {
 func (c *PbGeneric) Init(Conf *config.Config) error {
 	// Waiting for server reflection
 	dOpts := dproto.Options{}
-	p, err := generic.NewPbFileProviderWithDynamicGo(Conf.IDLPath, context.Background(), dOpts)
+	p, err := generic.NewPbFileProviderWithDynamicGo(Conf.IDLPath, context.Background(), dOpts, Conf.IncludePath...)
 	if err != nil {
 		return err
 	}
