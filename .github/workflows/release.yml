@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build:
+    name: Build binary
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            file_name: ${{ github.event.repository.name }}-linux-amd64
+          - arch: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            file_name: ${{ github.event.repository.name }}-linux-arm64
+          - arch: x86_64-apple-darwin
+            os: macos-latest
+            file_name: ${{ github.event.repository.name }}-darwin-amd64
+          - arch: aarch64-apple-darwin
+            os: macos-latest
+            file_name: ${{ github.event.repository.name }}-darwin-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Build
+        run: CGO_ENABLED=0 go build -ldflags "-s -w" -trimpath -o ${{ matrix.file_name }}
+
+      - name: Calculate checksum
+        run: echo $(shasum -a 256 ${{ matrix.file_name }} | cut -f1 -d' ') > ${{ matrix.file_name }}.sha256sum
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.file_name }}
+          path: ${{ matrix.file_name }}
+
+      - name: Upload checksum of artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.file_name }}.sha256sum
+          path: ${{ matrix.file_name }}.sha256sum
+
+  release:
+    name: Release artifacts
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "Release ${{ github.ref_name }}"
+          generate_release_notes: true
+          files: |
+            **/${{ github.event.repository.name }}*
