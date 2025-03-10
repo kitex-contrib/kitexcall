@@ -111,6 +111,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 
 	f.Var((*StringList)(&a.IncludePath), "include-path", "Specify additional paths for imported IDL files. Can be repeated.")
 
+	f.BoolVar(&a.Streaming, "streaming", false, "Enable streaming interaction.")
+
 	return f
 }
 
@@ -179,7 +181,13 @@ func (a *Argument) checkTransport() error {
 		a.Transport = config.Framed
 	case strings.ToLower(config.TTHeaderFramed):
 		a.Transport = config.TTHeaderFramed
+	case strings.ToLower(config.GRPC):
+		a.Transport = config.GRPC
 	case "":
+		if a.Streaming {
+			// gRPC for streaming by default
+			a.Transport = config.GRPC
+		}
 	default:
 		return errors.New(errors.ArgParseError, "Transport type is invalid")
 	}
@@ -187,6 +195,10 @@ func (a *Argument) checkTransport() error {
 }
 
 func (a *Argument) checkData() error {
+	// when -streaming is enabled, -data and -file are not required
+	if a.Streaming {
+		return nil
+	}
 	// Data's priority is higher than File
 	if a.Data != "" {
 		return nil
@@ -293,6 +305,7 @@ func (a *Argument) BuildConfig() *config.Config {
 		BizError:       a.BizError,
 		Quiet:          a.Quiet,
 		IncludePath:    a.IncludePath,
+		Streaming:      a.Streaming,
 	}
 }
 

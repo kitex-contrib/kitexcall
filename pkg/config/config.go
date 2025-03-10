@@ -28,6 +28,7 @@ const (
 	TTHeader       string = "TTHeader"
 	Framed         string = "Framed"
 	TTHeaderFramed string = "TTHeaderFramed"
+	GRPC           string = "gRPC"
 )
 
 // We provide a general configuration
@@ -48,6 +49,7 @@ type Config struct {
 	BizError       bool
 	Quiet          bool
 	IncludePath    []string
+	Streaming      bool
 }
 
 type ConfigBuilder interface {
