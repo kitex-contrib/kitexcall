@@ -21,7 +21,6 @@ const (
 	Unknown  string = ""
 	Thrift   string = "thrift"
 	Protobuf string = "protobuf"
-	// Reserved for Server Streaming
 )
 
 const (
@@ -49,7 +48,8 @@ type Config struct {
 	BizError       bool
 	Quiet          bool
 	IncludePath    []string
-	Streaming      bool
+	// Streaming related config
+	IsStreaming bool // Whether the call is a streaming call
 }
 
 type ConfigBuilder interface {

@@ -34,19 +34,29 @@ type Client interface {
 
 func InvokeRPC(conf *config.Config) (Client, error) {
 	var c Client
-	switch conf.Type {
-	case config.Thrift:
-		c = NewThriftGeneric()
-	case config.Protobuf:
-		c = NewPbGeneric()
-	default:
-		c = NewThriftGeneric()
+
+	// Choose the appropriate client type based on configuration
+	if conf.IsStreaming {
+		// For streaming RPCs, use the streaming client
+		c = NewStreamingClient()
+	} else {
+		// For standard RPCs, choose the appropriate client based on IDL type
+		switch conf.Type {
+		case config.Thrift:
+			c = NewThriftGeneric()
+		case config.Protobuf:
+			c = NewPbGeneric()
+		default:
+			c = NewThriftGeneric()
+		}
 	}
 
+	// Initialize the client
 	if err := c.Init(conf); err != nil {
 		return nil, errors.New(errors.ClientError, "Client init failed: %v", err)
 	}
 
+	// Execute the RPC call for all client types
 	if err := c.Call(); err != nil {
 		// Handle Biz error
 		bizErr, isBizErr := kerrors.FromBizStatusError(err)
@@ -59,8 +69,11 @@ func InvokeRPC(conf *config.Config) (Client, error) {
 		return nil, errors.New(errors.ServerError, "RPC call failed: %v", err)
 	}
 
-	if err := c.Output(); err != nil {
-		return nil, errors.New(errors.OutputError, "Response parse error: %v", err)
+	// Only handle output for non-streaming clients, as streaming clients handle output directly
+	if !conf.IsStreaming {
+		if err := c.Output(); err != nil {
+			return nil, errors.New(errors.OutputError, "Response parse error: %v", err)
+		}
 	}
 
 	return c, nil

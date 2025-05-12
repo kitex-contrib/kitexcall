@@ -111,7 +111,8 @@ func (a *Argument) buildFlags() *flag.FlagSet {
 
 	f.Var((*StringList)(&a.IncludePath), "include-path", "Specify additional paths for imported IDL files. Can be repeated.")
 
-	f.BoolVar(&a.Streaming, "streaming", false, "Enable streaming interaction.")
+	// Add streaming related flags
+	f.BoolVar(&a.IsStreaming, "streaming", false, "Enable streaming mode. Will be auto-detected from IDL if not specified.")
 
 	return f
 }
@@ -147,6 +148,7 @@ func (a *Argument) ParseArgs() error {
 	if err := a.ValidateArgs(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -184,7 +186,7 @@ func (a *Argument) checkTransport() error {
 	case strings.ToLower(config.GRPC):
 		a.Transport = config.GRPC
 	case "":
-		if a.Streaming {
+		if a.IsStreaming {
 			// gRPC for streaming by default
 			a.Transport = config.GRPC
 		}
@@ -195,10 +197,6 @@ func (a *Argument) checkTransport() error {
 }
 
 func (a *Argument) checkData() error {
-	// when -streaming is enabled, -data and -file are not required
-	if a.Streaming {
-		return nil
-	}
 	// Data's priority is higher than File
 	if a.Data != "" {
 		return nil
@@ -212,9 +210,17 @@ func (a *Argument) checkData() error {
 		return errors.New(errors.ArgParseError, "Input file does not exist")
 	}
 
-	// Check if the file is a JSON file.
-	if !strings.HasSuffix(a.File, ".json") {
-		return errors.New(errors.ArgParseError, "Input file must be in JSON format")
+	// Check file extension for valid formats
+	if a.IsStreaming {
+		// For streaming calls, allow both .json and .jsonl files
+		if !strings.HasSuffix(a.File, ".json") && !strings.HasSuffix(a.File, ".jsonl") {
+			return errors.New(errors.ArgParseError, "Input file must be in .json or .jsonl format")
+		}
+	} else {
+		// For non-streaming calls, only allow .json files
+		if !strings.HasSuffix(a.File, ".json") {
+			return errors.New(errors.ArgParseError, "Input file must be in JSON format")
+		}
 	}
 	return nil
 }
@@ -267,8 +273,8 @@ func (a *Argument) checkIDL() error {
 	switch a.Type {
 	case "thrift", "protobuf":
 	case "unknown":
-		if idlType, ok := a.guessIDLType(); ok {
-			a.Type = idlType
+		if typ, ok := a.guessIDLType(); ok {
+			a.Type = typ
 		} else {
 			return errors.New(errors.ArgParseError, "Can not guess an IDL type from %q (unknown suffix), please specify with the '-type' flag.", a.IDLPath)
 		}
@@ -305,7 +311,8 @@ func (a *Argument) BuildConfig() *config.Config {
 		BizError:       a.BizError,
 		Quiet:          a.Quiet,
 		IncludePath:    a.IncludePath,
-		Streaming:      a.Streaming,
+		// Add streaming configurations
+		IsStreaming: a.IsStreaming,
 	}
 }
 
@@ -319,5 +326,14 @@ Examples:
 	# Or use the file as input:
 	kitexcall -t thrift -idl-path /path/to/idl/file.thrift -e 0.0.0.0:9999 -m ServiceName/MethodName -f /path/to/input/file.json
 	
+	# Streaming examples:
+	# Client streaming - with multiple messages from a JSONL file:
+	kitexcall -t thrift -idl-path /path/to/idl/file.thrift -e 0.0.0.0:9999 -m ServiceName/MethodName -f /path/to/input/messages.jsonl --streaming
+	
+	# Server streaming - send a request and receive multiple responses:
+	kitexcall -t thrift -idl-path /path/to/idl/file.thrift -e 0.0.0.0:9999 -m ServiceName/MethodName -d '{"Msg": "hello"}' --streaming
+	
+	# Bidirectional streaming - send multiple messages and receive multiple responses:
+	kitexcall -t thrift -idl-path /path/to/idl/file.thrift -e 0.0.0.0:9999 -m ServiceName/MethodName -f /path/to/input/messages.jsonl --streaming
 	`)
 }

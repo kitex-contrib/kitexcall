@@ -7,7 +7,8 @@ Kitexcall is a command-line tool for sending JSON general requests using kitex, 
 ## Features
 
 - **Supports Thrift/Protobuf:** It supports IDL in Thrift/Protobuf formats.
-- **Supports Multiple Transport Protocols:** It supports transport protocols like Buffered, TTHeader, Framed, and TTHeaderFramed, with plans to support GRPC (Protobuf and Thrift Streaming) in the future.
+- **Supports Multiple Transport Protocols:** It supports transport protocols like Buffered, TTHeader, Framed, and TTHeaderFramed, as well as gRPC for streaming calls.
+- **Supports Streaming Calls:** It supports unary, client streaming, server streaming, and bidirectional streaming RPCs.
 - **Supports Common Client Options:** It allows specify common client options, such as client.WithHostPorts, etc.
 - **Supports manual data input from the command line and local files:** Request data can be read from command line arguments or local files.
 - **Supports Metadata Passing:** It supports sending transient keys (WithValue) and persistent keys (WithPersistentValue), and also supports receiving backward metadata (Backward) returned by the server.
@@ -201,5 +202,48 @@ kitexcall -m ExampleMethod -biz-error
 
 Use the `-verbose` or `-v` flag to enable verbose mode, providing more detailed output information.
 
+### Streaming Support
+
+Kitexcall supports gRPC streaming RPC calls. When using streaming mode, the transport protocol is automatically set to gRPC.
+
+#### Streaming Command Line Options
+
+- `--streaming`: Enables streaming mode. The streaming type is automatically determined based on the method definition in the IDL file.
+
+#### Streaming Input Files
+
+For client and bidirectional streaming, which require sending multiple messages, you can use:
+- A single JSON file (.json) for sending a single message
+- A JSONL file (.jsonl) for sending multiple messages, with one JSON object per line
+
+#### Examples
+
+**Client Streaming Example:**
+
+```bash
+# Create a file with multiple messages (one per line)
+cat > messages.jsonl << EOF
+{"message": "hello 1"}
+{"message": "hello 2"}
+{"message": "hello 3"}
+EOF
+
+# Send multiple messages with client streaming
+kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -f messages.jsonl --streaming
+```
+
+**Server Streaming Example:**
+
+```bash
+# Send a single request and receive multiple responses
+kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -d '{"message": "hello"}' --streaming
+```
+
+**Bidirectional Streaming Example:**
+
+```bash
+# Send multiple messages and receive multiple responses
+kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -f messages.jsonl --streaming
+```
 
 Maintained by: [Zzhiter](https://github.com/Zzhiter)

@@ -7,7 +7,8 @@ kitexcall 是使用 kitex 发送 json 通用请求的命令行工具，像是 cu
 ## **Features**
 
 - **支持 Thrift/Protobuf**：支持 Thrift/Protobuf 格式的 IDL。
-- **支持多种传输协议**：支持 Buffered、TTHeader、Framed、TTHeaderFramed 传输协议，未来也计划支持 GRPC（Protobuf 及 Thrift Streaming）
+- **支持多种传输协议**：支持 Buffered、TTHeader、Framed、TTHeaderFramed 传输协议，以及用于流式调用的 gRPC 协议。
+- **支持流式调用**：支持单向、客户端流式、服务端流式和双向流式 RPC 调用。
 - **支持常用客户端选项**：支持指定常用的客户端选项，例如 `client.WithHostPorts` 等。
 - **支持手动从命令行和本地文件输入数据**：请求数据可以从命令行参数或本地文件读取。
 - **支持元信息传递**：支持发送单跳透传（WithValue）和持续透传（WithPersistentValue）的元信息，并支持接收 server 返回的反向透传元信息（Backward）。
@@ -203,5 +204,48 @@ kitexcall -m ExampleMethod -biz-error
 
 使用 `-verbose` 或 `-v` 标志启用详细模式，以提供更详细的输出信息。
 
+### 流式调用支持
+
+Kitexcall 支持 gRPC 流式 RPC 调用。在使用流式模式时，传输协议会自动设置为 gRPC。
+
+#### 流式调用命令行选项
+
+- `--streaming`：启用流式模式。流式类型会根据 IDL 文件中的方法定义自动判断。
+
+#### 流式调用输入文件
+
+对于需要发送多个消息的客户端流式和双向流式调用，您可以使用：
+- 单个 JSON 文件（.json）用于发送单个消息
+- JSONL 文件（.jsonl）用于发送多个消息，每行一个 JSON 对象
+
+#### 示例
+
+**客户端流式调用示例：**
+
+```bash
+# 创建一个包含多个消息的文件（每行一个）
+cat > messages.jsonl << EOF
+{"message": "hello 1"}
+{"message": "hello 2"}
+{"message": "hello 3"}
+EOF
+
+# 使用客户端流式发送多个消息
+kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -f messages.jsonl --streaming
+```
+
+**服务端流式调用示例：**
+
+```bash
+# 发送单个请求并接收多个响应
+kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -d '{"message": "hello"}' --streaming
+```
+
+**双向流式调用示例：**
+
+```bash
+# 发送多个消息并接收多个响应
+kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -f messages.jsonl --streaming
+```
 
 维护者: [Zzhiter](https://github.com/Zzhiter)
