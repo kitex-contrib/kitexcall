@@ -19,7 +19,9 @@ package client
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"sync"
 
 	"github.com/bytedance/gopkg/cloud/metainfo"
 	dproto "github.com/cloudwego/dynamicgo/proto"
@@ -30,8 +32,10 @@ import (
 	"github.com/cloudwego/kitex/pkg/kerrors"
 	"github.com/cloudwego/kitex/pkg/remote"
 	remote_transmeta "github.com/cloudwego/kitex/pkg/remote/transmeta"
+	"github.com/cloudwego/kitex/pkg/serviceinfo"
 	"github.com/cloudwego/kitex/pkg/transmeta"
 	"github.com/cloudwego/kitex/transport"
+
 	"github.com/kitex-contrib/kitexcall/pkg/config"
 	"github.com/kitex-contrib/kitexcall/pkg/errors"
 	"github.com/kitex-contrib/kitexcall/pkg/log"
@@ -46,6 +50,7 @@ type GenericClientBase struct {
 	Req          interface{}
 	Resp         interface{}
 	MetaBackward map[string]string
+	st           *ioStream
 }
 
 func (c *GenericClientBase) Call() error {
@@ -53,8 +58,149 @@ func (c *GenericClientBase) Call() error {
 	if err != nil {
 		return err
 	}
+	mt, err := c.Generic.GetMethod(nil, c.Conf.Method)
+	if err != nil {
+		return err
+	}
+	switch mt.StreamingMode {
+	case serviceinfo.StreamingBidirectional:
+		return c.callBidiStreaming(ctx)
+	case serviceinfo.StreamingServer:
+		return c.callServerStreaming(ctx)
+	case serviceinfo.StreamingClient:
+		return c.callClientStreaming(ctx)
+	case serviceinfo.StreamingNone:
+		return c.callPingPong(ctx)
+	// todo: deal with unary
+	default:
+		return fmt.Errorf("unsupported streaming mode: %v", mt.StreamingMode)
+	}
+}
 
-	if err = c.BuildRequest(); err != nil {
+func (c *GenericClientBase) callBidiStreaming(ctx context.Context) error {
+	// todo: deal with call options
+	ctx, cancel := context.WithCancel(ctx)
+	cliStream, err := genericclient.NewBidirectionalStreaming(ctx, c.Client, c.Conf.Method)
+	if err != nil {
+		cancel()
+		return err
+	}
+	defer cancel()
+	var wg sync.WaitGroup
+	var finalErr error
+	var parserErr error
+
+	// send goroutine
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			req, nErr := c.st.Recv()
+			if nErr != nil {
+				if nErr == io.EOF {
+					// close send
+					cliStream.Close()
+					return
+				}
+				// cancel entire stream
+				// consider log this err
+				cancel()
+				parserErr = nErr
+				return
+			}
+			if sErr := cliStream.Send(req); sErr != nil {
+				return
+			}
+		}
+	}()
+
+	// recv goroutine
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			resp, rErr := cliStream.Recv()
+			if rErr != nil {
+				if rErr == io.EOF {
+					return
+				}
+				finalErr = rErr
+				return
+			}
+			if sErr := c.st.Send(resp); sErr != nil {
+				finalErr = sErr
+				return
+			}
+		}
+	}()
+
+	// consider the customized exit style like special flag in resp
+	wg.Wait()
+	if parserErr != nil {
+		return parserErr
+	}
+	return finalErr
+}
+
+func (c *GenericClientBase) callServerStreaming(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	req, nErr := c.st.Recv()
+	if nErr != nil {
+		return nErr
+	}
+	cliStream, err := genericclient.NewServerStreaming(ctx, c.Client, c.Conf.Method, req)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	for {
+		resp, rErr := cliStream.Recv()
+		if rErr != nil {
+			if rErr == io.EOF {
+				return nil
+			}
+			return rErr
+		}
+		// todo: consider biz customized finish flag
+		if sErr := c.st.Send(resp); sErr != nil {
+			return sErr
+		}
+	}
+}
+
+func (c *GenericClientBase) callClientStreaming(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	cliStream, err := genericclient.NewClientStreaming(ctx, c.Client, c.Conf.Method)
+	if err != nil {
+		return err
+	}
+	var resp interface{}
+	var finalErr error
+	for {
+		req, nErr := c.st.Recv()
+		if nErr != nil {
+			if nErr == io.EOF {
+				resp, finalErr = cliStream.CloseAndRecv()
+				if finalErr != nil {
+					return finalErr
+				}
+				// output the resp
+				if sErr := c.st.Send(resp); sErr != nil {
+					return sErr
+				}
+			}
+			return nErr
+		}
+		if sErr := cliStream.Send(req); sErr != nil {
+			return sErr
+		}
+	}
+}
+
+func (c *GenericClientBase) callPingPong(ctx context.Context) error {
+	if err := c.BuildRequest(); err != nil {
 		return err
 	}
 	resp, err := c.Client.GenericCall(ctx, c.Conf.Method, c.Req, c.CallOptions...)
@@ -72,6 +218,9 @@ func (c *GenericClientBase) Call() error {
 }
 
 func (c *GenericClientBase) Output() error {
+	if c.Conf.Streaming {
+		return nil
+	}
 	var metaBackward string
 	var err error
 	// Backward metainfo
@@ -132,6 +281,8 @@ func (c *GenericClientBase) BuildClientOptions() error {
 				opts = append(opts, client.WithTransportProtocol(transport.Framed))
 			case "TTHeaderFramed":
 				opts = append(opts, client.WithTransportProtocol(transport.TTHeaderFramed))
+			case "gRPC":
+				opts = append(opts, client.WithTransportProtocol(transport.GRPC))
 			}
 		}
 	}
@@ -236,11 +387,21 @@ func (c *ThriftGeneric) Init(Conf *config.Config) error {
 		return err
 	}
 
-	cli, err := genericclient.NewClient("WaitingForServiceDiscovery", c.Generic, c.ClientOpts...)
+	var cli genericclient.Client
+	// todo: deal with IDLServiceName
+	if Conf.Streaming {
+		cli, err = genericclient.NewStreamingClient("test", c.Generic, c.ClientOpts...)
+	} else {
+		cli, err = genericclient.NewClient("test", c.Generic, c.ClientOpts...)
+	}
 	if err != nil {
 		return err
 	}
 	c.Client = cli
+
+	// build ioStream
+	// todo: deal with file input/output
+	c.st = newIoStream(os.Stdin, os.Stdout)
 	return nil
 }
 
@@ -272,10 +433,16 @@ func (c *PbGeneric) Init(Conf *config.Config) error {
 		return err
 	}
 
-	cli, err := genericclient.NewClient(Conf.IDLServiceName, c.Generic, c.ClientOpts...)
+	var cli genericclient.Client
+	if Conf.Streaming {
+		cli, err = genericclient.NewStreamingClient(Conf.IDLServiceName, c.Generic, c.ClientOpts...)
+	} else {
+		cli, err = genericclient.NewClient(Conf.IDLServiceName, c.Generic, c.ClientOpts...)
+	}
 	if err != nil {
 		return err
 	}
+
 	c.Client = cli
 	return nil
 }
