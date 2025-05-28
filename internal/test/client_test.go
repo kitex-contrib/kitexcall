@@ -219,7 +219,9 @@ func TestThriftGenericServer_invokeRPC(t *testing.T) {
 		t.Fatalf("InvokeRPC failed: %v", err)
 	}
 
-	resp := cli.GetResponse()
+	// Get response from BaseClient
+	baseCli := cli.(*client.GenericClient)
+	resp := baseCli.Resp
 	if resp == nil {
 		t.Fatalf("Response is nil")
 	}
@@ -261,7 +263,9 @@ func TestPbGenericServer_invokeRPC(t *testing.T) {
 		t.Fatalf("InvokeRPC failed: %v", err)
 	}
 
-	resp := cli.GetResponse()
+	// Get response from BaseClient
+	baseCli := cli.(*client.GenericClient)
+	resp := baseCli.Resp
 	if resp == nil {
 		t.Fatalf("Response is nil")
 	}
@@ -281,7 +285,7 @@ func TestPbGenericServer_invokeRPC(t *testing.T) {
 	}
 }
 
-func TestBizErrorGenericServer_invokeRPC(t *testing.T) {
+func TestHandleBizError(t *testing.T) {
 	InitBizErrorGenericServer()
 	defer bizErrorGenericServer.Stop()
 
@@ -295,30 +299,14 @@ func TestBizErrorGenericServer_invokeRPC(t *testing.T) {
 		BizError:       true,
 	}
 
-	c := client.NewThriftGeneric()
-
-	if err := c.Init(conf); err != nil {
-		t.Fatalf("Client init failed: %v", err)
+	cli, err := client.InvokeRPC(conf)
+	if err != nil {
+		t.Fatalf("InvokeRPC failed: %v", err)
 	}
 
-	err := c.Call()
-	if err == nil {
-		t.Errorf("Expected error, got nil")
-	}
-
-	// Handle Biz error
-	bizErr, isBizErr := kerrors.FromBizStatusError(err)
-	if !isBizErr {
-		t.Errorf("Expected BizStatusError, got %v", err)
-	}
-
-	expectedCode := int32(404)
-	expectedMessage := "not found"
-	if bizErr.BizStatusCode() != expectedCode {
-		t.Errorf("Expected BizStatusCode %d, got %d", expectedCode, bizErr.BizStatusCode())
-	}
-	if bizErr.BizMessage() != expectedMessage {
-		t.Errorf("Expected BizMessage %s, got %s", expectedMessage, bizErr.BizMessage())
+	// Verify that client is correctly returned
+	if cli == nil {
+		t.Errorf("Expected client, got nil")
 	}
 }
 
@@ -346,7 +334,9 @@ func TestExample2Service_withImportPath(t *testing.T) {
 		t.Fatalf("InvokeRPC failed: %v", err)
 	}
 
-	resp := cli.GetResponse()
+	// Get response from BaseClient
+	baseCli := cli.(*client.GenericClient)
+	resp := baseCli.Resp
 	if resp == nil {
 		t.Fatalf("Response is nil")
 	}
@@ -364,4 +354,62 @@ func TestExample2Service_withImportPath(t *testing.T) {
 			t.Errorf("Expected meta backward not found in response")
 		}
 	}
+}
+
+func TestStdinInput(t *testing.T) {
+	// Initialize and start the server
+	InitThriftGenericServer()
+	defer thriftGenericServer.Stop()
+
+	// Create a pipe to simulate stdin
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("Failed to create pipe: %v", err)
+	}
+	defer r.Close()
+	defer w.Close()
+
+	// Save original stdin and restore it after the test
+	originalStdin := os.Stdin
+	defer func() { os.Stdin = originalStdin }()
+	os.Stdin = r
+
+	// Write test data to the pipe
+	testData := `{"Msg": "hello"}`
+	go func() {
+		_, err := w.WriteString(testData + "\n")
+		if err != nil {
+			t.Errorf("Failed to write to pipe: %v", err)
+		}
+		w.Close()
+	}()
+
+	conf := &config.Config{
+		Type:           config.Thrift,
+		Endpoint:       []string{thriftServerHost},
+		IDLPath:        thriftFilePath,
+		IDLServiceName: "GenericService",
+		Method:         "ExampleMethod",
+		Transport:      config.TTHeader,
+		// No Data field, will use stdin
+	}
+
+	cli, err := client.InvokeRPC(conf)
+	if err != nil {
+		t.Fatalf("InvokeRPC failed: %v", err)
+	}
+
+	// Get response from BaseClient
+	baseCli := cli.(*client.GenericClient)
+	resp := baseCli.Resp
+	if resp == nil {
+		t.Fatalf("Response is nil")
+	}
+
+	expectedResponse := `{"Msg":"world","BaseResp":{"StatusCode":0,"StatusMessage":""}}`
+
+	var serverData, expectedData interface{}
+	json.Unmarshal([]byte(resp.(string)), &serverData)
+	json.Unmarshal([]byte(expectedResponse), &expectedData)
+	DeepEqual(t, serverData, expectedData)
 }

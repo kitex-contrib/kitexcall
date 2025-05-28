@@ -168,7 +168,7 @@ func TestStreamingArgs(t *testing.T) {
 
 			// If streaming is enabled, verify that transport is set to GRPC
 			if !test.expectErr && arg.IsStreaming {
-				if arg.Transport != "GRPC" {
+				if arg.Transport != "gRPC" {
 					t.Errorf("Expected transport to be GRPC for streaming call, but got %s", arg.Transport)
 				}
 			}

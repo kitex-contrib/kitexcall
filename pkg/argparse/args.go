@@ -203,7 +203,8 @@ func (a *Argument) checkData() error {
 	}
 
 	if a.File == "" {
-		return errors.New(errors.ArgParseError, "At least one of Data or File must be specified")
+		// Allow interactive input for both streaming and non-streaming calls
+		return nil
 	}
 
 	if _, err := os.Stat(a.File); os.IsNotExist(err) {

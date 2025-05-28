@@ -9,6 +9,7 @@ kitexcall 是使用 kitex 发送 json 通用请求的命令行工具，像是 cu
 - **支持 Thrift/Protobuf**：支持 Thrift/Protobuf 格式的 IDL。
 - **支持多种传输协议**：支持 Buffered、TTHeader、Framed、TTHeaderFramed 传输协议，以及用于流式调用的 gRPC 协议。
 - **支持流式调用**：支持单向、客户端流式、服务端流式和双向流式 RPC 调用。
+- **支持交互式模式**：当未指定输入文件或数据时，自动进入交互式模式，方便用户实时输入请求数据。
 - **支持常用客户端选项**：支持指定常用的客户端选项，例如 `client.WithHostPorts` 等。
 - **支持手动从命令行和本地文件输入数据**：请求数据可以从命令行参数或本地文件读取。
 - **支持元信息传递**：支持发送单跳透传（WithValue）和持续透传（WithPersistentValue）的元信息，并支持接收 server 返回的反向透传元信息（Backward）。
@@ -247,5 +248,41 @@ kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -d '{"message": "hello
 # 发送多个消息并接收多个响应
 kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -f messages.jsonl --streaming
 ```
+
+### 交互式模式
+
+当未指定输入文件（`-f`）或数据（`-d`）时，kitexcall 会自动进入交互式模式。在交互式模式下，您可以：
+
+1. 实时输入请求数据
+2. 查看服务器响应
+3. 继续输入新的请求数据
+4. 使用 `Ctrl+D` 退出交互式模式
+
+示例：
+
+```bash
+# 不指定输入文件或数据，自动进入交互式模式
+kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999
+
+# 在交互式模式下输入数据
+> {"message": "hello"}
+[Status]: Success
+{
+    "message": "hello"
+}
+
+> {"message": "world"}
+[Status]: Success
+{
+    "message": "world"
+}
+
+# 使用 Ctrl+D 退出
+```
+
+交互式模式特别适用于：
+- 需要多次发送不同请求数据的场景
+- 调试和测试服务接口
+- 实时查看服务响应
 
 维护者: [Zzhiter](https://github.com/Zzhiter)

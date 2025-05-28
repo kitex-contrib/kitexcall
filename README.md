@@ -9,6 +9,7 @@ Kitexcall is a command-line tool for sending JSON general requests using kitex, 
 - **Supports Thrift/Protobuf:** It supports IDL in Thrift/Protobuf formats.
 - **Supports Multiple Transport Protocols:** It supports transport protocols like Buffered, TTHeader, Framed, and TTHeaderFramed, as well as gRPC for streaming calls.
 - **Supports Streaming Calls:** It supports unary, client streaming, server streaming, and bidirectional streaming RPCs.
+- **Supports Interactive Mode:** Automatically enters interactive mode when no input file or data is specified, allowing users to input request data in real-time.
 - **Supports Common Client Options:** It allows specify common client options, such as client.WithHostPorts, etc.
 - **Supports manual data input from the command line and local files:** Request data can be read from command line arguments or local files.
 - **Supports Metadata Passing:** It supports sending transient keys (WithValue) and persistent keys (WithPersistentValue), and also supports receiving backward metadata (Backward) returned by the server.
@@ -245,5 +246,41 @@ kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -d '{"message": "hello
 # Send multiple messages and receive multiple responses
 kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -f messages.jsonl --streaming
 ```
+
+### Interactive Mode
+
+When no input file (`-f`) or data (`-d`) is specified, kitexcall automatically enters interactive mode. In interactive mode, you can:
+
+1. Input request data in real-time
+2. View server responses
+3. Continue inputting new request data
+4. Use `Ctrl+D` to exit interactive mode
+
+Example:
+
+```bash
+# No input file or data specified, automatically enters interactive mode
+kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999
+
+# Input data in interactive mode
+> {"message": "hello"}
+[Status]: Success
+{
+    "message": "hello"
+}
+
+> {"message": "world"}
+[Status]: Success
+{
+    "message": "world"
+}
+
+# Use Ctrl+D to exit
+```
+
+Interactive mode is particularly useful for:
+- Scenarios requiring multiple requests with different data
+- Debugging and testing service interfaces
+- Real-time viewing of service responses
 
 Maintained by: [Zzhiter](https://github.com/Zzhiter)

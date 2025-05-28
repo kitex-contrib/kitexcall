@@ -5,6 +5,7 @@ go 1.21
 require (
 	github.com/bytedance/gopkg v0.1.2
 	github.com/cloudwego/dynamicgo v0.6.2
+	github.com/cloudwego/gopkg v0.1.4
 	github.com/cloudwego/kitex v0.13.1
 )
 
@@ -15,7 +16,6 @@ require (
 	github.com/cloudwego/configmanager v0.2.3 // indirect
 	github.com/cloudwego/fastpb v0.0.5 // indirect
 	github.com/cloudwego/frugal v0.2.5 // indirect
-	github.com/cloudwego/gopkg v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/cloudwego/localsession v0.1.2 // indirect
 	github.com/cloudwego/netpoll v0.7.0 // indirect
@@ -51,3 +51,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/apache/thrift => github.com/apache/thrift v0.13.0

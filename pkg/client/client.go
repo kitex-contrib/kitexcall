@@ -23,15 +23,16 @@ import (
 	"github.com/kitex-contrib/kitexcall/pkg/errors"
 )
 
+// Client interface defines the methods that all client types must implement
 type Client interface {
 	Init(conf *config.Config) error
 	Call() error
 	HandleBizError(bizErr kerrors.BizStatusErrorIface) error
-	Output() error
-	GetResponse() interface{}
+	HandleMetadata(metadata map[string]string) error
 	GetMetaBackward() map[string]string
 }
 
+// InvokeRPC creates and initializes the appropriate client based on configuration
 func InvokeRPC(conf *config.Config) (Client, error) {
 	var c Client
 
@@ -40,15 +41,8 @@ func InvokeRPC(conf *config.Config) (Client, error) {
 		// For streaming RPCs, use the streaming client
 		c = NewStreamingClient()
 	} else {
-		// For standard RPCs, choose the appropriate client based on IDL type
-		switch conf.Type {
-		case config.Thrift:
-			c = NewThriftGeneric()
-		case config.Protobuf:
-			c = NewPbGeneric()
-		default:
-			c = NewThriftGeneric()
-		}
+		// For standard RPCs, use the generic client
+		c = NewGenericClient()
 	}
 
 	// Initialize the client
@@ -56,7 +50,7 @@ func InvokeRPC(conf *config.Config) (Client, error) {
 		return nil, errors.New(errors.ClientError, "Client init failed: %v", err)
 	}
 
-	// Execute the RPC call for all client types
+	// Execute the RPC call
 	if err := c.Call(); err != nil {
 		// Handle Biz error
 		bizErr, isBizErr := kerrors.FromBizStatusError(err)
@@ -67,13 +61,6 @@ func InvokeRPC(conf *config.Config) (Client, error) {
 			return c, nil
 		}
 		return nil, errors.New(errors.ServerError, "RPC call failed: %v", err)
-	}
-
-	// Only handle output for non-streaming clients, as streaming clients handle output directly
-	if !conf.IsStreaming {
-		if err := c.Output(); err != nil {
-			return nil, errors.New(errors.OutputError, "Response parse error: %v", err)
-		}
 	}
 
 	return c, nil
