@@ -169,7 +169,7 @@ kitexcall --idl-path echo.thrift --method TestService/EchoPingPong --endpoint 12
 ```bash
 # 方式三：交互式输入
 kitexcall --idl-path echo.thrift --method TestService/EchoPingPong --endpoint 127.0.0.1:9999
-```
+
 > {"message": "hello"}
 [Status]: Success
 {
@@ -178,7 +178,6 @@ kitexcall --idl-path echo.thrift --method TestService/EchoPingPong --endpoint 12
 ```
 
 2. 流式调用：
-
 ```bash
 # 客户端流式调用（使用JSONL文件输入）
 cat > messages.jsonl << EOF
@@ -219,7 +218,7 @@ kitexcall --idl-path echo.thrift --method TestService/EchoServer --endpoint 127.
 ```bash
 # 双向流式调用（使用交互式输入）
 kitexcall --idl-path echo.thrift --method TestService/Echo --endpoint 127.0.0.1:8888 --streaming
-```
+
 > {"message": "hello"}
 [Status]: Success
 {
@@ -232,23 +231,36 @@ kitexcall --idl-path echo.thrift --method TestService/Echo --endpoint 127.0.0.1:
 
 ### 命令行选项
 
-支持以下选项：
-
-- `-help` 或 `-h`：输出使用说明。
-- `-type` 或 `-t`：指定 IDL 类型：`thrift` 或 `protobuf`，支持通过 IDL 文件类型推测，默认是 `thrift`。
-- `-idl-path` 或 `-p`：指定 IDL 文件的路径。
-- `-include-path`：添加一个 IDL 里 include 的其他文件的搜索路径。支持添加多个，会按照添加的路径顺序搜索。
-- `-method` 或 `-m`：必选，指定方法名，格式为 `IDLServiceName/MethodName` 或仅为 `MethodName`。当 server 端开启了 MultiService 模式时，必须指定 `IDLServiceName`，同时指定传输协议为 TTHeader 或 TTHeaderFramed 。
-- `-file` 或 `-f`：指定输入文件路径，必须是 JSON 格式。
-- `-data` 或 `-d`：指定要发送的数据，格式为 JSON 字符串。
-- `-endpoint` 或 `-e`：指定服务器地址，可以指定多个。
-- `-transport`：指定传输协议类型。可以是 `TTHeader`、`Framed` 或 `TTHeaderFramed`，如不指定则为默认的 `Buffered`。
-- `-biz-error`：启用客户端接收 server 返回的业务错误。
-- `-meta`：指定传递给 server 的单跳透传元信息。可以指定多个，格式为 key=value。
-- `-meta-persistent`：指定传递给 server 的持续透传元信息。可以指定多个，格式为 key=value。
-- `-meta-backward`：启用从服务器接收反向透传元信息。
-- `-q`: 只输出Json响应，不输出其他提示信息。
-- `-verbose` 或 `-v`：启用详细模式。
+- `-help` 或 `-h`
+  输出使用说明。
+- `-type` 或 `-t`
+  指定 IDL 类型：`thrift` 或 `protobuf`，支持通过 IDL 文件类型推测，默认是 `thrift`。
+- `-idl-path` 或 `-p`
+  指定 IDL 文件的路径。
+- `-include-path`
+  添加一个 IDL 里 include 的其他文件的搜索路径。支持添加多个，会按照添加的路径顺序搜索。
+- `-method` 或 `-m`
+  【必选】指定方法名，格式为 `IDLServiceName/MethodName` 或仅为 `MethodName`。当 server 端开启了 MultiService 模式时，必须指定 `IDLServiceName`，同时指定传输协议为 `TTHeader` 或 `TTHeaderFramed`。
+- `-file` 或 `-f`
+  指定输入文件路径，必须是 JSON 格式。
+- `-data` 或 `-d`
+  指定要发送的数据，格式为 JSON 字符串。
+- `-endpoint` 或 `-e`
+  指定服务器地址，可以指定多个。
+- `-transport`
+  指定传输协议类型。可以是 `TTHeader`、`Framed` 或 `TTHeaderFramed`，如不指定则为默认的 `Buffered`。
+- `-biz-error`
+  启用客户端接收 server 返回的业务错误。
+- `-meta`
+  指定传递给 server 的单跳透传元信息。可以指定多个，格式为 `key=value`。
+- `-meta-persistent`
+  指定传递给 server 的持续透传元信息。可以指定多个，格式为 `key=value`。
+- `-meta-backward`
+  启用从服务器接收反向透传元信息。
+- `-q`
+  只输出 Json 响应，不输出其他提示信息。
+- `-verbose` 或 `-v`
+  启用详细模式，提供更详细的输出信息。
 
 ### 详细描述
 
@@ -382,15 +394,13 @@ kitexcall --idl-path echo.thrift --method TestService/EchoClient --endpoint 127.
 
 ```bash
 kitexcall --idl-path echo.thrift --method TestService/EchoClient --endpoint 127.0.0.1:8888 --streaming
-```
+
 > {"Msg": "hello"}
 [Status]: Success
 {
     "Msg": "hello"
 }
-
-# 使用 Ctrl+D 结束输入（不再发送新请求，但如果服务端继续推送，仍会接收流式响应）
-# 使用 Ctrl+C 终止流式会话（强制关闭连接）
+```
 
 交互式模式特别适用于：
 - 需要多次发送不同请求数据的场景

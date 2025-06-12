@@ -169,7 +169,7 @@ Output:
 ```bash
 # Method 3: Interactive input
 kitexcall --idl-path echo.thrift --method TestService/EchoPingPong --endpoint 127.0.0.1:9999
-```
+
 > {"message": "hello"}
 [Status]: Success
 {
@@ -219,7 +219,7 @@ Output:
 ```bash
 # Bidirectional streaming (using interactive input)
 kitexcall --idl-path echo.thrift --method TestService/Echo --endpoint 127.0.0.1:8888 --streaming
-```
+
 > {"message": "hello"}
 [Status]: Success
 {
@@ -232,21 +232,36 @@ kitexcall --idl-path echo.thrift --method TestService/Echo --endpoint 127.0.0.1:
 
 ### Command Line Options
 
-- `-help` or `-h`: Outputs the usage instructions.
-- `-type` or `-t`: Specifies the IDL type: thrift or protobuf. It supports inference based on the IDL file type. The default is thrift..
-- `-idl-path` or `-p`: Specifies the path to the IDL file.
-- `-include-path`: Add a search path for the IDL. Multiple paths can be added and will be searched in the order they are added.
-- `-method` or `-m`: Required, specifies the method name in the format IDLServiceName/MethodName or just MethodName. When the server side has MultiService mode enabled, IDLServiceName must be specified, and the transport protocol must be TTHeader or TTHeaderFramed.
-- `-file` or `-f`: Specifies the input file path, which must be in JSON format.
-- `-data` or `-d`: Specifies the data to be sent, in JSON string format.
-- `-endpoint` or `-e`: Specifies the server address, multiple can be specified.
-- `-transport`: Specifies the transport protocol type. It can be TTHeader, Framed, or TTHeaderFramed. If not specified, the default is Buffered.
-- `-biz-error`: Enables the client to receive business errors returned by the server.
-- `-meta`: Specifies one-way metadata passed to the server. Multiple can be specified, in the format key=value.
-- `-meta-persistent`: Specifies persistent metadata passed to the server. Multiple can be specified, in the format key=value.
-- `-meta-backward`: Enables receiving backward metadata (Backward) returned by the server.
-- `-q`: Only output JSON response, no other information.
-- `-verbose` or `-v`: Enables verbose mode for more detailed output information.
+- `-help` or `-h`
+  Outputs the usage instructions.
+- `-type` or `-t`
+  Specifies the IDL type: `thrift` or `protobuf`. Supports inference based on the IDL file type. Default is `thrift`.
+- `-idl-path` or `-p`
+  Specifies the path to the IDL file.
+- `-include-path`
+  Adds a search path for the IDL. Multiple paths can be added and will be searched in order.
+- `-method` or `-m`
+  [Required] Specifies the method name, in the format `IDLServiceName/MethodName` or just `MethodName`. When the server has MultiService mode enabled, `IDLServiceName` must be specified, and the transport protocol must be `TTHeader` or `TTHeaderFramed`.
+- `-file` or `-f`
+  Specifies the input file path, which must be in JSON format.
+- `-data` or `-d`
+  Specifies the data to be sent, in JSON string format.
+- `-endpoint` or `-e`
+  Specifies the server address. Multiple can be specified.
+- `-transport`
+  Specifies the transport protocol type. Can be `TTHeader`, `Framed`, or `TTHeaderFramed`. Default is `Buffered`.
+- `-biz-error`
+  Enables the client to receive business errors returned by the server.
+- `-meta`
+  Specifies one-way metadata passed to the server. Multiple can be specified, in the format `key=value`.
+- `-meta-persistent`
+  Specifies persistent metadata passed to the server. Multiple can be specified, in the format `key=value`.
+- `-meta-backward`
+  Enables receiving backward metadata (Backward) returned by the server.
+- `-q`
+  Only outputs JSON response, no other information.
+- `-verbose` or `-v`
+  Enables verbose mode for more detailed output information.
 
 ### Detailed Description
 
