@@ -14,35 +14,29 @@
  * limitations under the License.
  */
 
-package main
+namespace go streaming
 
-import (
-	"os"
-
-	"github.com/kitex-contrib/kitexcall/pkg/argparse"
-	"github.com/kitex-contrib/kitexcall/pkg/client"
-	"github.com/kitex-contrib/kitexcall/pkg/log"
-)
-
-func main() {
-	args := argparse.NewArgument()
-
-	if err := args.ParseArgs(); err != nil {
-		fail(err)
-	}
-
-	conf := args.BuildConfig()
-
-	// After implementing server reflection,
-	// options here can include list, describe, or invoke.
-
-	if _, err := client.InvokeRPC(conf); err != nil {
-		fail(err)
-	}
+struct Message {
+    1: string Msg
 }
 
-func fail(err error) {
-	log.Fail()
-	log.Println(err)
-	os.Exit(1)
+struct BaseResp {
+    1: i32 StatusCode
+    2: string StatusMessage
 }
+
+struct StreamingResponse {
+    1: Message Msg
+    2: BaseResp BaseResp
+}
+
+service StreamingService {
+    // Bidirectional streaming
+    StreamingResponse BidirectionalStream(1: Message req) (streaming.mode="bidirectional"),
+    
+    // Server streaming
+    StreamingResponse ServerStream(1: Message req) (streaming.mode="server"),
+    
+    // Client streaming
+    StreamingResponse ClientStream(1: Message req) (streaming.mode="client"),
+} 

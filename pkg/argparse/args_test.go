@@ -71,3 +71,107 @@ func TestAugment_ParseArgs(t *testing.T) {
 		})
 	}
 }
+
+func TestStreamingArgs(t *testing.T) {
+	// Create a test file
+	tmpFile, err := os.CreateTemp("", "test_file*.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+	_, err = tmpFile.Write([]byte(`{"test": "value"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = tmpFile.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a test jsonl file for client/bidirectional streaming
+	tmpJsonlFile, err := os.CreateTemp("", "test_file*.jsonl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpJsonlFile.Name())
+	_, err = tmpJsonlFile.Write([]byte(`{"test": "message1"}
+{"test": "message2"}
+{"test": "message3"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = tmpJsonlFile.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name      string
+		args      []string
+		expectErr bool
+	}{
+		{
+			name: "Valid client streaming with jsonl file",
+			args: []string{
+				"-idl-path", "test.thrift",
+				"-e", "127.0.0.1:8000",
+				"-m", "TestService/ClientMethod",
+				"-f", tmpJsonlFile.Name(),
+				"--streaming",
+			},
+			expectErr: false,
+		},
+		{
+			name: "Valid server streaming with json file",
+			args: []string{
+				"-idl-path", "test.thrift",
+				"-e", "127.0.0.1:8000",
+				"-m", "TestService/ServerMethod",
+				"-f", tmpFile.Name(),
+				"--streaming",
+			},
+			expectErr: false,
+		},
+		{
+			name: "Valid bidirectional streaming with jsonl file",
+			args: []string{
+				"-idl-path", "test.thrift",
+				"-e", "127.0.0.1:8000",
+				"-m", "TestService/Method",
+				"-f", tmpJsonlFile.Name(),
+				"--streaming",
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Save and restore os.Args
+			oldArgs := os.Args
+			defer func() { os.Args = oldArgs }()
+
+			// Set up test args
+			os.Args = append([]string{"kitexcall"}, test.args...)
+
+			// Run test
+			arg := NewArgument()
+			err := arg.ParseArgs()
+
+			if test.expectErr && err == nil {
+				t.Errorf("Expected error but got nil")
+			}
+
+			if !test.expectErr && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+
+			// If streaming is enabled, verify that transport is set to GRPC
+			if !test.expectErr && arg.IsStreaming {
+				if arg.Transport != "gRPC" {
+					t.Errorf("Expected transport to be GRPC for streaming call, but got %s", arg.Transport)
+				}
+			}
+		})
+	}
+}

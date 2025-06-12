@@ -1,25 +1,27 @@
-/*
- * Copyright 2025 CloudWeGo Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2025 CloudWeGo Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/kitex-contrib/kitexcall/pkg/log"
 )
@@ -44,14 +46,36 @@ type ioStream struct {
 	// deal with Send output to
 	out       io.Writer
 	formatter *outputFormatter
+
+	// signal channel for handling Ctrl+C
+	sigChan chan os.Signal
 }
 
 func newIoStream(in io.Reader, out io.Writer) *ioStream {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT)
+
 	return &ioStream{
 		decoder:   json.NewDecoder(in),
 		out:       out,
 		formatter: &outputFormatter{},
+		sigChan:   sigChan,
 	}
+}
+
+// WithInterruptHandler creates a new context that will be cancelled when Ctrl+C is pressed
+func (st *ioStream) WithInterruptHandler(ctx context.Context) context.Context {
+	ctx, cancel := context.WithCancel(ctx)
+	go func() {
+		select {
+		case <-st.sigChan:
+			log.Info("Stream cancelled by user (Ctrl+C)")
+			cancel()
+		case <-ctx.Done():
+			// Context was cancelled by other means
+		}
+	}()
+	return ctx
 }
 
 func (st *ioStream) Recv() (string, error) {

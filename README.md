@@ -7,7 +7,9 @@ Kitexcall is a command-line tool for sending JSON general requests using kitex, 
 ## Features
 
 - **Supports Thrift/Protobuf:** It supports IDL in Thrift/Protobuf formats.
-- **Supports Multiple Transport Protocols:** It supports transport protocols like Buffered, TTHeader, Framed, and TTHeaderFramed, with plans to support GRPC (Protobuf and Thrift Streaming) in the future.
+- **Supports Multiple Transport Protocols:** It supports transport protocols like Buffered, TTHeader, Framed, and TTHeaderFramed, as well as gRPC for streaming calls.
+- **Supports Streaming Calls:** It supports unary, client streaming, server streaming, and bidirectional streaming RPCs.
+- **Supports Interactive Mode:** Automatically enters interactive mode when no input file or data is specified, allowing users to input request data in real-time.
 - **Supports Common Client Options:** It allows specify common client options, such as client.WithHostPorts, etc.
 - **Supports manual data input from the command line and local files:** Request data can be read from command line arguments or local files.
 - **Supports Metadata Passing:** It supports sending transient keys (WithValue) and persistent keys (WithPersistentValue), and also supports receiving backward metadata (Backward) returned by the server.
@@ -31,18 +33,22 @@ When using the kitexcall tool, you need to specify several required arguments, i
 ```thrift
 // echo.thrift
 
-namespace go api
+namespace go test
 
 struct Request {
-    1: string message
+    1: required string message,
 }
 
 struct Response {
-    1: string message
+    1: required string message,
 }
 
-service Echo {
-    Response echo(1: Request req)
+service TestService {
+    Response Echo (1: Request req) (streaming.mode="bidirectional"),
+    Response EchoClient (1: Request req) (streaming.mode="client"),
+    Response EchoServer (1: Request req) (streaming.mode="server"),
+
+    Response EchoPingPong (1: Request req), // KitexThrift, non-streaming
 }
 ```
 
@@ -57,51 +63,171 @@ service Echo {
 - Server:
 
 ```go
-var _ api.Echo = &EchoImpl{}
+// TestServiceImpl implements echo.TestService interface
+type TestServiceImpl struct{}
 
-// EchoImpl implements the last service interface defined in the IDL.
-type EchoImpl struct{}
+// Echo implements bidirectional streaming
+func (s *TestServiceImpl) Echo(stream echo.TestService_EchoServer) (err error) {
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		// Echo back the message
+		resp := &echo.Response{
+			Message: "server echo: " + req.Message,
+		}
+		if err := stream.Send(resp); err != nil {
+			return err
+		}
+	}
+}
 
-// Echo implements the Echo interface.
-func (s *EchoImpl) Echo(ctx context.Context, req *api.Request) (resp *api.Response, err error) {
-    klog.Info("echo called")
-    return &api.Response{Message: req.Message}, nil
+// EchoClient implements client streaming
+func (s *TestServiceImpl) EchoClient(stream echo.TestService_EchoClientServer) (err error) {
+	var messageCount int
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			// Client has finished sending
+			resp := &echo.Response{
+				Message: "server received " + strconv.Itoa(messageCount) + " messages",
+			}
+			return stream.SendAndClose(resp)
+		}
+		if err != nil {
+			return err
+		}
+		messageCount++
+	}
+}
+
+// EchoServer implements server streaming
+func (s *TestServiceImpl) EchoServer(req *echo.Request, stream echo.TestService_EchoServerServer) (err error) {
+	counter := 0
+	for {
+		resp := &echo.Response{
+			Message: "server streaming response " + strconv.Itoa(counter) + " for request: " + req.Message,
+		}
+		if err := stream.Send(resp); err != nil {
+			return err
+		}
+		counter++
+	}
+}
+
+// EchoPingPong implements traditional request-response
+func (s *TestServiceImpl) EchoPingPong(ctx context.Context, req *echo.Request) (resp *echo.Response, err error) {
+	return &echo.Response{
+		Message: "server pong: " + req.Message,
+	}, nil
 }
 
 func main() {
-    svr := echo.NewServer(new(EchoImpl))
-    if err := svr.Run(); err != nil {
-        log.Println("server stopped with error:", err)
-    } else {
-        log.Println("server stopped")
-    }
+	svr := echo.NewServer(new(TestServiceImpl),
+		server.WithMetaHandler(transmeta.ServerHTTP2Handler),
+	)
+
+	err := svr.Run()
+	if err != nil {
+		log.Println(err.Error())
+	}
 }
 ```
 
-- Directly specifying request data:
+### Usage Examples
+
+1. Normal Calls:
 
 ```bash
-kitexcall -idl-path echo.thrift -m echo -d '{"message": "hello"}' -e 127.0.0.1:9999
+# Method 1: Using file input
+kitexcall --idl-path echo.thrift --method TestService/EchoPingPong --endpoint 127.0.0.1:9999 -f input.json
 ```
 Output:
 ```
 [Status]: Success
 {
-    "message": "hello"
+    "message": "server pong: hello"
 }
 ```
 
-- Or reading request data from a file:
-
 ```bash
-kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -f input.json
+# Method 2: Direct data input
+kitexcall --idl-path echo.thrift --method TestService/EchoPingPong --endpoint 127.0.0.1:9999 -d '{"message": "hello"}'
 ```
 Output:
 ```
 [Status]: Success
 {
-    "message": "hello"
+    "message": "server pong: hello"
 }
+```
+
+```bash
+# Method 3: Interactive input
+kitexcall --idl-path echo.thrift --method TestService/EchoPingPong --endpoint 127.0.0.1:9999
+```
+> {"message": "hello"}
+[Status]: Success
+{
+    "message": "server pong: hello"
+}
+```
+
+2. Streaming Calls:
+
+```bash
+# Client streaming (using JSONL file input)
+cat > messages.jsonl << EOF
+{"message": "hello 1"}
+{"message": "hello 2"}
+{"message": "hello 3"}
+EOF
+
+kitexcall --idl-path echo.thrift --method TestService/EchoClient --endpoint 127.0.0.1:8888 --streaming -f messages.jsonl
+```
+Output:
+```
+[Status]: Success
+{
+    "message": "server received 3 messages"
+}
+```
+
+```bash
+# Server streaming (using JSON file input)
+kitexcall --idl-path echo.thrift --method TestService/EchoServer --endpoint 127.0.0.1:8888 --streaming -f input.json
+```
+Output:
+```
+[Status]: Success
+{
+    "message": "server streaming response 0 for request: hello"
+}
+{
+    "message": "server streaming response 1 for request: hello"
+}
+{
+    "message": "server streaming response 2 for request: hello"
+}
+...
+```
+
+```bash
+# Bidirectional streaming (using interactive input)
+kitexcall --idl-path echo.thrift --method TestService/Echo --endpoint 127.0.0.1:8888 --streaming
+```
+> {"message": "hello"}
+[Status]: Success
+{
+    "message": "server echo: hello"
+}
+
+# Use Ctrl+D to end input (no more requests will be sent, but streaming responses will still be received if the server continues to send)
+# Use Ctrl+C to terminate the streaming session (force close the connection)
 ```
 
 ### Command Line Options
@@ -201,5 +327,84 @@ kitexcall -m ExampleMethod -biz-error
 
 Use the `-verbose` or `-v` flag to enable verbose mode, providing more detailed output information.
 
+### Streaming Support
 
-Maintained by: [Zzhiter](https://github.com/Zzhiter)
+Kitexcall supports gRPC streaming RPC calls. When using streaming mode, the transport protocol is automatically set to gRPC.
+
+#### Streaming Command Line Options
+
+- `--streaming`: Enables streaming mode. The streaming type is automatically determined based on the method definition in the IDL file.
+
+#### Streaming Input Files
+
+For client and bidirectional streaming, which require sending multiple messages, you can use:
+- A single JSON file (.json) for sending a single message
+- A JSONL file (.jsonl) for sending multiple messages, with one JSON object per line
+
+#### Examples
+
+**Client Streaming Example:**
+
+```bash
+# Create a file with multiple messages (one per line)
+cat > messages.jsonl << EOF
+{"message": "hello 1"}
+{"message": "hello 2"}
+{"message": "hello 3"}
+EOF
+
+# Send multiple messages with client streaming
+kitexcall -idl-path echo.thrift -m echo -f messages.jsonl --streaming
+```
+
+**Server Streaming Example:**
+
+```bash
+# Send a single request and receive multiple responses
+kitexcall -idl-path echo.thrift -m echo -d '{"message": "hello"}' --streaming
+```
+
+**Bidirectional Streaming Example:**
+
+```bash
+# Send multiple messages and receive multiple responses
+kitexcall -idl-path echo.thrift -m echo -f messages.jsonl --streaming
+```
+
+### Interactive Mode
+
+When no input file (`-f`) or data (`-d`) is specified, kitexcall automatically enters interactive mode. In interactive mode, you can:
+
+1. Input request data in real-time
+2. View server responses
+3. Continue inputting new request data
+4. Use `Ctrl+D` to end input (no more requests will be sent, but streaming responses will still be received if the server continues to send)
+5. Use `Ctrl+C` to terminate the streaming session (force close the connection)
+
+Example:
+
+```bash
+# No input file or data specified, automatically enters interactive mode
+kitexcall -idl-path echo.thrift -m echo
+
+# Input data in interactive mode
+> {"message": "hello"}
+[Status]: Success
+{
+    "message": "hello"
+}
+
+> {"message": "world"}
+[Status]: Success
+{
+    "message": "world"
+}
+
+# Use Ctrl+D to end input (no more requests will be sent, but streaming responses will still be received if the server continues to send)
+# Use Ctrl+C to terminate the streaming session (force close the connection)
+```
+
+Interactive mode is particularly useful for:
+- Scenarios requiring multiple requests with different data
+- Debugging and testing service interfaces
+- Real-time viewing of service responses
