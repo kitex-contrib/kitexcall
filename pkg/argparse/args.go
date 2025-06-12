@@ -274,8 +274,8 @@ func (a *Argument) checkIDL() error {
 	switch a.Type {
 	case "thrift", "protobuf":
 	case "unknown":
-		if typ, ok := a.guessIDLType(); ok {
-			a.Type = typ
+		if idlType, ok := a.guessIDLType(); ok {
+			a.Type = idlType
 		} else {
 			return errors.New(errors.ArgParseError, "Can not guess an IDL type from %q (unknown suffix), please specify with the '-type' flag.", a.IDLPath)
 		}

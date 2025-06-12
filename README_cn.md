@@ -33,24 +33,28 @@ go install github.com/kitex-contrib/kitexcall@latest
 ```python
 // echo.thrift
 
-namespace go api
+namespace go test
 
 struct Request {
-        1: string message
+    1: required string message,
 }
 
 struct Response {
-        1: string message
+    1: required string message,
 }
 
-service Echo {
-    Response echo(1: Request req)
+service TestService {
+    Response Echo (1: Request req) (streaming.mode="bidirectional"),
+    Response EchoClient (1: Request req) (streaming.mode="client"),
+    Response EchoServer (1: Request req) (streaming.mode="server"),
+
+    Response EchoPingPong (1: Request req), // KitexThrift, non-streaming
 }
 ```
 
 创建input.json文件指定json格式请求数据：
 
-```python
+```json
 {
     "message": "hello"
 }
@@ -58,52 +62,172 @@ service Echo {
 
 对应的 server:
 
-```python
-var _ api.Echo = &EchoImpl{}
+```go
+// TestServiceImpl implements echo.TestService interface
+type TestServiceImpl struct{}
 
-// EchoImpl implements the last service interface defined in the IDL.
-type EchoImpl struct{}
+// Echo implements bidirectional streaming
+func (s *TestServiceImpl) Echo(stream echo.TestService_EchoServer) (err error) {
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		// Echo back the message
+		resp := &echo.Response{
+			Message: "server echo: " + req.Message,
+		}
+		if err := stream.Send(resp); err != nil {
+			return err
+		}
+	}
+}
 
-// Echo implements the Echo interface.
-func (s *EchoImpl) Echo(ctx context.Context, req *api.Request) (resp *api.Response, err error) {
-    klog.Info("echo called")
-    return &api.Response{Message: req.Message}, nil
+// EchoClient implements client streaming
+func (s *TestServiceImpl) EchoClient(stream echo.TestService_EchoClientServer) (err error) {
+	var messageCount int
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			// Client has finished sending
+			resp := &echo.Response{
+				Message: "server received " + strconv.Itoa(messageCount) + " messages",
+			}
+			return stream.SendAndClose(resp)
+		}
+		if err != nil {
+			return err
+		}
+		messageCount++
+	}
+}
+
+// EchoServer implements server streaming
+func (s *TestServiceImpl) EchoServer(req *echo.Request, stream echo.TestService_EchoServerServer) (err error) {
+	counter := 0
+	for {
+		resp := &echo.Response{
+			Message: "server streaming response " + strconv.Itoa(counter) + " for request: " + req.Message,
+		}
+		if err := stream.Send(resp); err != nil {
+			return err
+		}
+		counter++
+	}
+}
+
+// EchoPingPong implements traditional request-response
+func (s *TestServiceImpl) EchoPingPong(ctx context.Context, req *echo.Request) (resp *echo.Response, err error) {
+	return &echo.Response{
+		Message: "server pong: " + req.Message,
+	}, nil
 }
 
 func main() {
-    svr := echo.NewServer(new(EchoImpl))
-    if err := svr.Run(); err != nil {
-        log.Println("server stopped with error:", err)
-    } else {
-        log.Println("server stopped")
-    }
+	svr := echo.NewServer(new(TestServiceImpl),
+		server.WithMetaHandler(transmeta.ServerHTTP2Handler),
+	)
+
+	err := svr.Run()
+	if err != nil {
+		log.Println(err.Error())
+	}
 }
 ```
 
-- 直接指定请求数据：
+### 使用示例
+
+1. 普通调用：
 
 ```bash
-kitexcall -idl-path echo.thrift -m echo -d '{"message": "hello"}' -e 127.0.0.1:9999
+# 方式一：使用文件输入
+kitexcall --idl-path echo.thrift --method TestService/EchoPingPong --endpoint 127.0.0.1:9999 -f input.json
 ```
 输出：
 ```
 [Status]: Success
 {
-    "message": "hello"
+    "message": "server pong: hello"
 }
 ```
 
-- 从文件读入请求数据：
-
 ```bash
-kitexcall -idl-path echo.thrift -m echo -d '{"message": "hello"}' -e 127.0.0.1:9999 -f input.json
+# 方式二：直接指定数据
+kitexcall --idl-path echo.thrift --method TestService/EchoPingPong --endpoint 127.0.0.1:9999 -d '{"message": "hello"}'
 ```
 输出：
 ```
 [Status]: Success
 {
-    "message": "hello"
+    "message": "server pong: hello"
 }
+```
+
+```bash
+# 方式三：交互式输入
+kitexcall --idl-path echo.thrift --method TestService/EchoPingPong --endpoint 127.0.0.1:9999
+```
+> {"message": "hello"}
+[Status]: Success
+{
+    "message": "server pong: hello"
+}
+```
+
+2. 流式调用：
+
+```bash
+# 客户端流式调用（使用JSONL文件输入）
+cat > messages.jsonl << EOF
+{"message": "hello 1"}
+{"message": "hello 2"}
+{"message": "hello 3"}
+EOF
+
+kitexcall --idl-path echo.thrift --method TestService/EchoClient --endpoint 127.0.0.1:8888 --streaming -f messages.jsonl
+```
+输出：
+```
+[Status]: Success
+{
+    "message": "server received 3 messages"
+}
+```
+
+```bash
+# 服务端流式调用（使用JSON文件输入）
+kitexcall --idl-path echo.thrift --method TestService/EchoServer --endpoint 127.0.0.1:8888 --streaming -f input.json
+```
+输出：
+```
+[Status]: Success
+{
+    "message": "server streaming response 0 for request: hello"
+}
+{
+    "message": "server streaming response 1 for request: hello"
+}
+{
+    "message": "server streaming response 2 for request: hello"
+}
+...
+```
+
+```bash
+# 双向流式调用（使用交互式输入）
+kitexcall --idl-path echo.thrift --method TestService/Echo --endpoint 127.0.0.1:8888 --streaming
+```
+> {"message": "hello"}
+[Status]: Success
+{
+    "message": "server echo: hello"
+}
+
+# 使用 Ctrl+D 结束输入（不再发送新请求，但如果服务端继续推送，仍会接收流式响应）
+# 使用 Ctrl+C 终止流式会话（强制关闭连接）
 ```
 
 ### 命令行选项
@@ -224,29 +348,24 @@ Kitexcall 支持 gRPC 流式 RPC 调用。在使用流式模式时，传输协�
 **客户端流式调用示例：**
 
 ```bash
-# 创建一个包含多个消息的文件（每行一个）
 cat > messages.jsonl << EOF
-{"message": "hello 1"}
-{"message": "hello 2"}
-{"message": "hello 3"}
+{"Msg": "hello 1"}
+{"Msg": "hello 2"}
+{"Msg": "hello 3"}
 EOF
-
-# 使用客户端流式发送多个消息
-kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -f messages.jsonl --streaming
+kitexcall --idl-path echo.thrift --method TestService/EchoClient --endpoint 127.0.0.1:8888 --streaming -f messages.jsonl
 ```
 
 **服务端流式调用示例：**
 
 ```bash
-# 发送单个请求并接收多个响应
-kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -d '{"message": "hello"}' --streaming
+kitexcall --idl-path echo.thrift --method TestService/EchoClient --endpoint 127.0.0.1:8888 --streaming -d '{"Msg": "hello"}'
 ```
 
 **双向流式调用示例：**
 
 ```bash
-# 发送多个消息并接收多个响应
-kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -f messages.jsonl --streaming
+kitexcall --idl-path echo.thrift --method TestService/EchoClient --endpoint 127.0.0.1:8888 --streaming -f messages.jsonl
 ```
 
 ### 交互式模式
@@ -256,33 +375,24 @@ kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999 -f messages.jsonl --st
 1. 实时输入请求数据
 2. 查看服务器响应
 3. 继续输入新的请求数据
-4. 使用 `Ctrl+D` 退出交互式模式
+4. 使用 `Ctrl+D` 结束输入（不再发送新请求，但如果服务端继续推送，仍会接收流式响应）
+5. 使用 `Ctrl+C` 终止流式会话（强制关闭连接）
 
 示例：
 
 ```bash
-# 不指定输入文件或数据，自动进入交互式模式
-kitexcall -idl-path echo.thrift -m echo -e 127.0.0.1:9999
-
-# 在交互式模式下输入数据
-> {"message": "hello"}
-[Status]: Success
-{
-    "message": "hello"
-}
-
-> {"message": "world"}
-[Status]: Success
-{
-    "message": "world"
-}
-
-# 使用 Ctrl+D 退出
+kitexcall --idl-path echo.thrift --method TestService/EchoClient --endpoint 127.0.0.1:8888 --streaming
 ```
+> {"Msg": "hello"}
+[Status]: Success
+{
+    "Msg": "hello"
+}
+
+# 使用 Ctrl+D 结束输入（不再发送新请求，但如果服务端继续推送，仍会接收流式响应）
+# 使用 Ctrl+C 终止流式会话（强制关闭连接）
 
 交互式模式特别适用于：
 - 需要多次发送不同请求数据的场景
 - 调试和测试服务接口
 - 实时查看服务响应
-
-维护者: [Zzhiter](https://github.com/Zzhiter)
